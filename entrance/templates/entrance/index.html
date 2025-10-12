@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>株価予測システム (Your App Name)</title>
+    <link rel="stylesheet" href="{% static 'entrance/css/style.css' %}">
+</head>
+<body>
+
+    <header id="page-header" class="header-hidden">
+        <div class="header-container">
+            <div class="logo">
+                <img src="{% static 'entrance/images/logo.svg' %}" alt="アプリロゴ">
+            </div>
+            <nav>
+                <a href="{% url 'accounts:home' %}" class="login-button">ログイン</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <video id="opening-video" src="{% static 'entrance/videos/opening.mp4' %}" autoplay muted playsinline></video>
+            <div id="scroll-indicator" class="scroll-hidden">
+                <span></span>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature-block">
+                <div class="feature-video-container">
+                    <video src="{% static 'entrance/videos/feature_01.mp4' %}" autoplay muted loop playsinline></video>
+                </div>
+                <div class="feature-text-container">
+                    <h2>AIによる高精度な予測</h2>
+                    <p>独自のAIが、膨大な市場データをリアルタイムで解析。ノイズに惑わされない、精度の高い未来予測を提供します。</p>
+                </div>
+            </div>
+
+            <div class="feature-block reverse">
+                <div class="feature-video-container">
+                    <video src="{% static 'entrance/videos/feature_02.mp4' %}" autoplay muted loop playsinline></video>
+                </div>
+                <div class="feature-text-container">
+                    <h2>直感的で、美しいインターフェース</h2>
+                    <p>必要な情報に、最短でアクセス。専門家から初心者まで、誰もが直感的に使いこなせる洗練されたデザイン。</p>
+                </div>
+            </div>
+
+            <div class="feature-block">
+                <div class="feature-video-container">
+                    <video src="{% static 'entrance/videos/feature_03.mp4' %}" autoplay muted loop playsinline></video>
+                </div>
+                <div class="feature-text-container">
+                    <h2>リスクを可視化するアラート</h2>
+                    <p>市場の重要な変動を見逃しません。設定した条件に基づき、リスクとチャンスをリアルタイムでお知らせします。</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-logo">
+                <img src="{% static 'entrance/images/logo.svg' %}" alt="アプリロゴ">
+            </div>
+            <nav class="footer-links">
+                <a href="#">プライバシーポリシー</a>
+                <a href="#">利用規約</a>
+                <a href="#">お問い合わせ</a>
+            </nav>
+            <div class="footer-social">
+                <a href="https://twitter.com/your_account" target="_blank" rel="noopener noreferrer">
+                    </a>
+            </div>
+            <p class="copyright">&copy; 2025 Your App Name</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'entrance/js/main.js' %}"></script>
+</body>
+</html>

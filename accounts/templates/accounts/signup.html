@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<html lang="ja">
+<head>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ログイン:株価AI予測</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+
+
+<body>
+<div class="container d-flex justify-content-center align-items-center h-100">
+    <div class="card p-4 card-glass text-center shadow-lg">
+      <div class="card-body">
+
+            <h3 class="fw-bold mb-4 text-center">📝 新規登録</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    
+                      
+                    <div class="mb-3">
+
+                        <label for="id_username"  class="form-label">ユーザー名:</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div style="color:red;">
+                                {{ form.username.errors }}
+                            </div>
+                        {% endif %}
+                       </div>
+
+          <!-- パスワード -->
+                    <div class="mb-3">
+                        <label for="id_password1"  class="form-label">パスワード:</label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <div style="color:red;">
+                                {{ form.password1.errors }}
+                            </div>
+                        {% endif %}
+                       </div>
+
+          <!-- パスワード -->
+                    <div class="mb-3">
+                        <label for="id_password2"  class="form-label">パスワード確認:</label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <div style="color:red;">
+                                {{ form.password2.errors }}
+                            </div>
+                        {% endif %}
+                        </div>
+
+                    <button type="submit">登録</button>
+                </form>
+
+                <a href="{% url 'accounts:login' %}">ログインはこちら</a>
+      </div>
+    </div>
+  </div>
+</body>    

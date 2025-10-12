@@ -1,0 +1,81 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #020617;
+  color: #e2e8f0;
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+/* 背景Canvas */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* カード共通デザイン */
+.card-glass {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.1);
+  max-width: 500px;
+  width: 90%;
+}
+
+/* ボタン */
+.btn-primary {
+  background-color: #10b981;
+  border: none;
+}
+.btn-primary:hover {
+  background-color: #34d399;
+}
+
+/* タイトル・区切り線 */
+h3 {
+  color: #a5f3fc;
+}
+hr {
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+/* =========================
+   ✅ テキストボックス共通デザイン
+   ========================= */
+.form-control {
+  background-color: rgba(30, 41, 59, 0.6); /* 半透明ダーク */
+  border: 1px solid rgba(100, 116, 139, 0.4);
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus {
+  background-color: rgba(15, 23, 42, 0.7);
+  border-color: #10b981; /* 緑のフォーカス */
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+  color: #f1f5f9;
+  outline: none;
+}
+
+.form-control::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+textarea.form-control {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* エラーメッセージなどに使う補助色 */
+.text-error {
+  color: #f87171;
+}
+.text-success {
+  color: #10b981;
+}

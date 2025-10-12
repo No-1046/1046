@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<html lang="ja">
+<head>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/common.css' %}">
+
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>ログイン:株価AI予測</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head><body>
+  <div class="container d-flex justify-content-center align-items-center h-100">
+  <div class="card p-4 card-glass">
+
+  <h2>Sign in</h2>
+  <form method="post" action="{% url 'accounts:login' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ログイン</button>
+  </form>
+
+  <hr>
+  <p>まだアカウントを持っていない場合は <a href="{% url 'accounts:signup' %}">サインアップ</a></p>
+</div>
+</div>
+</body>
+</html>
+  
