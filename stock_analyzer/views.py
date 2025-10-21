@@ -63,7 +63,21 @@ def get_model():
     return _model
 
 def index(request: HttpRequest):
-    return render(request, 'main.html')
+    return render(request, 'index.html')
+
+
+#システム使用回数管理
+def some_feature_view(request):
+    if request.user.is_authenticated:
+        # ログインユーザーのプロフィールを取得
+        profile = request.user.userprofile 
+        
+        # 使用回数を1増やす
+        profile.usage_count += 1
+        profile.save() # データベースに保存するのを忘れずに
+        return request
+        
+        
 
 def get_series(request: HttpRequest):
     ticker = request.GET.get('ticker', '6501')
@@ -75,7 +89,9 @@ def get_series(request: HttpRequest):
     df = df[["Open", "High", "Low", "Close"]].dropna()
     name = get_name_safe(tk)
     rows = [{"t": str(ts.date()), "o": r["Open"], "h": r["High"], "l": r["Low"], "c": r["Close"]} for ts, r in df.iterrows()]
+    some_feature_view(request)
     return JsonResponse({"ticker": tk, "name": name, "frame": frame, "rows": rows[-1200:]})
+
 
 def get_predict(request: HttpRequest):
     ticker = request.GET.get('ticker', '6501')
@@ -96,4 +112,5 @@ def get_predict(request: HttpRequest):
     name = get_name_safe(tk)
     drift = (proba - 0.5) * (0.02 if frame=="1d" else (0.05 if frame=="1wk" else 0.08))
     pred_close = close * (1 + drift)
+    some_feature_view(request)
     return JsonResponse({"ticker": tk, "name": name, "asof": asof, "frame": frame, "last_close": close, "prob_up": proba, "pred_close": pred_close, "horizon": horizon, "model": type(model).__name__})

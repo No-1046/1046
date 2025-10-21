@@ -1,28 +1,53 @@
+{% load static %}
 <!doctype html>
 <html>
 <html lang="ja">
-<head>
-  {% load static %}
+  
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/common.css' %}">
-
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ログイン:株価AI予測</title>
+  <title class="text-default">dログイン:株価AI予測</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-</head><body>
-  <div class="container d-flex justify-content-center align-items-center h-100">
-  <div class="card p-4 card-glass">
+  
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>株価予測システム (Your App Name)</title>
+      <link rel="stylesheet" href="{% static 'entrance/css/style.css' %}">
+  </head>
+  <header id="page-header" class="header-hidden">
+        <div class="header-container">
+            <div class="logo">
+              <img src="{% static 'images/logo.png' %}" alt="Chart.js"class="img-control"></div>
+        </div>
+    </header>
 
-  <h2>Sign in</h2>
+<body>
+  <div class="container d-flex justify-content-center align-items-center h-100">
+  <div class="card p-4 card-glass shadow-lg">
+  <div class="card-body">
+  <h2 class="fw-bold mb-4 text-light">✅ログイン</h2>
   <form method="post" action="{% url 'accounts:login' %}">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">ログイン</button>
-  </form>
+    <div class="mb-3">
+      <label for="username" class="form-label text-light">ユーザー名</label>
+      <input type="text" id="username" name="username" class="form-control custom-dark w-100" placeholder="ユーザー名を入力">
+    </div>
+
+    <div class="mb-3">
+      <label for="password" class="form-label text-light">パスワード</label>
+      <input type="password" id="password" name="password" class="form-control custom-dark w-100" placeholder="•••••••">
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100 py-2">ログイン</button>
+</form>
 
   <hr>
-  <p>まだアカウントを持っていない場合は <a href="{% url 'accounts:signup' %}">サインアップ</a></p>
+  <p class="text-default">まだアカウントを持っていない場合は <a href="{% url 'accounts:signup' %}" class="text-default">サインアップ</a></p>
+</div>
 </div>
 </div>
 </body>

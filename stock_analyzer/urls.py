@@ -3,8 +3,8 @@ from . import views
 
 app_name = 'satock_analyzer'
 urlpatterns = [ 
-    path('api/series/', views.get_series, name='api_series'),
-    path('api/predict/', views.get_predict, name='api_predict'),
-    path('api/home/', views.index, name='home'),
-    
+    path('', views.index, name='index'),
+    path('series/', views.get_series, name='get_series'),  # 株価データ取得
+    path('predict/', views.get_predict, name='get_predict'), # 予測結果取得   
+    path('home/', views.index, name='home'),
 ] 

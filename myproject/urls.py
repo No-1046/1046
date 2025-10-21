@@ -22,7 +22,7 @@ from . import views
 urlpatterns = [
     path('', include('entrance.urls')),  # サイト基本機能はルートURLに
     path('admin/', admin.site.urls),
-    path('analyzer/', include('stock_analyzer.urls')), # 株価分析機能は /analyzer/ 以下に
+    path('api/', include('stock_analyzer.urls')), # 株価分析機能は /analyzer/ 以下に
     path('accounts/', include('accounts.urls')), 
     #path('accounts/home', include('accounts.urls')),  
     #path('accounts/logout', include('accounts.urls')),       # 認証機能は /accounts/ 以下に

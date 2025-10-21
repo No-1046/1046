@@ -1,0 +1,83 @@
+{% load static %}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>株価AI予測（日/週/月）</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body data-bs-theme="dark" class="bg-dark text-light">
+  <div class="container-lg my-4 my-md-5">
+
+    <header class="mb-5">
+      <h1 class="display-6 fw-bold">📈 株価AI予測 <span id="titleName" class="text-body-secondary fs-5"></span></h1>
+      <div class="small text-muted">データ: Yahoo Finance / API: FastAPI</div>
+    </header>
+
+    <section class="mb-4">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-6 col-lg-6">
+          <label for="tickerInput" class="form-label small text-muted">銘柄コード（例: 6501 / 7203 / AAPL）</label>
+          <input id="tickerInput" class="form-control form-control-lg" value="6501" placeholder="例: 6501">
+        </div>
+        <div class="col-md-6 col-lg-2">
+          <label for="frame" class="form-label small text-muted">足種</label>
+          <select id="frame" class="form-select form-select-lg">
+            <option value="1d">日足</option>
+            <option value="1wk">週足</option>
+            <option value="1mo">月足</option>
+          </select>
+        </div>
+        <div class="col-md-6 col-lg-2">
+          <label for="horizon" class="form-label small text-muted">Horizon（バー数）</label>
+          <select id="horizon" class="form-select form-select-lg">
+            <option value="5">+5</option>
+            <option value="10">+10</option>
+            <option value="20">+20</option>
+          </select>
+        </div>
+        <div class="col-md-6 col-lg-2">
+          {% csrf_token %}<button id="searchBtn" class="btn btn-success btn-lg w-100">更新</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-3 g-md-4 mb-4">
+      <div class="col-md-6">
+        <div class="card bg-dark-subtle border-secondary h-100">
+          <div class="card-body">
+            <div class="small text-muted mb-1">現在値（終値）</div>
+            <div id="last" class="display-5 fw-semibold">--</div>
+            <div class="small text-secondary mt-1">更新: <span id="asof">--</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card bg-dark-subtle border-secondary h-100">
+          <div class="card-body">
+            <div class="small text-muted mb-1">AI予測（horizon末の期待値）</div>
+            <div id="pred" class="display-5 fw-semibold">--</div>
+            <div class="small text-muted mt-2">上昇確率</div>
+            <div id="prob" class="fs-4 fw-semibold">--%</div>
+            <div class="small text-secondary mt-1">モデル: <span id="model">--</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card bg-dark-subtle border-secondary p-3">
+      <canvas id="chart" height="120"></canvas>
+      <div id="status" class="small text-muted mt-2"></div>
+    </section>
+
+    <footer class="small text-muted mt-5">
+      予測は将来の成果を保証しません。投資判断は自己責任でお願いします。
+    </footer>
+  </div>
+
+  <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

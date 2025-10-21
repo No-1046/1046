@@ -1,31 +1,50 @@
+{% load static %}
 <!doctype html>
 <html>
 <html lang="ja">
-<head>
-  {% load static %}
+
+  
+  
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/common.css' %}">
+
+
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>ログイン:株価AI予測</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>株価予測システム (Your App Name)</title>
+    <link rel="stylesheet" href="{% static 'entrance/css/style.css' %}">
 </head>
+<header id="page-header" class="header-hidden">
+        <div class="header-container">
+            <div class="logo">
+                <img src="{% static 'images/logo.png' %}" alt="Chart.js"class="img-control">            </div>
+        </div>
+    </header>
+
 
 
 
 <body>
 <div class="container d-flex justify-content-center align-items-center h-100">
-    <div class="card p-4 card-glass text-center shadow-lg">
+    <div class="card p-4 card-glass  shadow-lg">
       <div class="card-body">
-
-            <h3 class="fw-bold mb-4 text-center">📝 新規登録</h3>
+        <div class="card-body">
+            <h2 class="fw-bold mb-4 text-light">📝 新規登録</h2>
                 <form method="post">
                     {% csrf_token %}
                     
                       
                     <div class="mb-3">
 
-                        <label for="id_username"  class="form-label">ユーザー名:</label>
+                        <label for="id_username"  class="form-label text-light">ユーザー名</label>
                         {{ form.username }}
                         {% if form.username.errors %}
                             <div style="color:red;">
@@ -36,7 +55,7 @@
 
           <!-- パスワード -->
                     <div class="mb-3">
-                        <label for="id_password1"  class="form-label">パスワード:</label>
+                        <label for="id_password1"  class="form-label text-light">パスワード</label>
                         {{ form.password1 }}
                         {% if form.password1.errors %}
                             <div style="color:red;">
@@ -47,7 +66,7 @@
 
           <!-- パスワード -->
                     <div class="mb-3">
-                        <label for="id_password2"  class="form-label">パスワード確認:</label>
+                        <label for="id_password2"  class="form-label text-light">パスワード確認</label>
                         {{ form.password2 }}
                         {% if form.password2.errors %}
                             <div style="color:red;">
@@ -56,10 +75,12 @@
                         {% endif %}
                         </div>
 
-                    <button type="submit">登録</button>
+                    <button type="submit text-default" class="btn btn-primary w-100 py-2">登録</button>
                 </form>
 
-                <a href="{% url 'accounts:login' %}">ログインはこちら</a>
+                <a href="{% url 'accounts:login' %}"  class="text-default">すでにアカウントを持っている場合はこちら ログイン</a>
+
+        </div>
       </div>
     </div>
   </div>

@@ -6,12 +6,37 @@ html, body {
   color: #e2e8f0;
   font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
 }
+/*テキストカラー*/
+.text-default{
+  color: #ffffff;
+}
+
+/* =========================
+   汎用画像コントロール用クラス
+   ========================= */
+.img-control {
+  /*display: block;                /* インラインではなくブロック扱いに */
+  max-width: 5%;               /* 親要素に合わせて縮小（拡大しない） */
+  height: auto;                  /* アスペクト比を保つ */
+  border-radius: 0.75rem;        /* 角丸 (rounded-xl相当) */
+  border: 1px solid rgba(100,116,139,0.3); /* 薄い枠線 */
+  background-color: #0f172a;     /* 背景（透過時に暗色が見える） */
+  padding: 0.25rem;              /* 内側の余白 */
+  box-shadow: 0 0 10px rgba(16,185,129,0.2); /* ほんのり緑光 */
+  transition: all 0.3s ease;
+}
+
+/* hover時のアニメーション効果 */
+.img-control:hover {
+  box-shadow: 0 0 14px rgba(16,185,129,0.4);
+  transform: scale(1.03);
+}
 
 /* 背景Canvas */
 #bgCanvas {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -72,6 +97,81 @@ textarea.form-control {
   resize: vertical;
 }
 
+/* =========================
+   フォーム全体の基本デザイン
+   ========================= */
+form {
+  color: #ffffff; /* テキストの色（薄いグレー） */
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+/* ラベル（label） */
+form label {
+  display: white;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: #a5f3fc; /* 水色っぽいタイトル色 */
+}
+
+/* 入力欄 */
+form input,
+form textarea,
+form select {
+  background-color: rgba(255, 255, 255, 1.0);
+  border: 1px solid rgba(100, 116, 139, 0.4);
+  color: #000000;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  width: 100%;
+  transition: all 0.2s ease-in-out;
+}
+
+/* フォーカス時（クリック中） */
+form input:focus,
+form textarea:focus,
+form select:focus {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-color: #10b981;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 1);
+  outline: none;
+}
+
+/* エラーテキスト */
+form .errorlist {
+  color: #f87171; /* 赤 */
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+/* =========================
+   Bootstrap版: Textboxデザイン統一
+   ========================= */
+.form-control.custom-dark {
+  background-color: #0f172a;           /* 背景 */
+  border: 1px solid #1e293b;           /* 枠線 */
+  color: #f1f5f9;                      /* 文字色 */
+  border-radius: 0.75rem;              /* 角丸 (rounded-xl相当) */
+  padding: 0.6rem 1rem;                /* py-2 px-3 相当 */
+  transition: all 0.2s ease-in-out;
+}
+
+.form-control.custom-dark::placeholder {
+  color: #94a3b8;                      /* プレースホルダ文字色 */
+}
+
+.form-control.custom-dark:focus {
+  background-color: #ffffff;
+  border-color: #10b981;               /* 緑色の枠線 */
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); /* 緑光 */
+  color: #000000;
+  outline: none;
+}
+
+
+
+
+
+
 /* エラーメッセージなどに使う補助色 */
 .text-error {
   color: #f87171;
@@ -79,3 +179,4 @@ textarea.form-control {
 .text-success {
   color: #10b981;
 }
+

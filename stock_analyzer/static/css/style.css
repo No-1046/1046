@@ -1,0 +1,12 @@
+/* style.css */
+
+/* Bootstrapのスタイルを上書きしたい場合や、
+   独自のスタイルを追加したい場合にここに記述します。 */
+body {
+  /* 例えばフォントを変えたい場合など */
+  /* font-family: sans-serif; */
+}
+
+.form-control, .form-select {
+  background-color: #2b3035; /* 入力欄の背景色を少し調整 */
+}
