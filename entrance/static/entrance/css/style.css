@@ -1,0 +1,306 @@
+/*
+ * common.css
+ * 株価予測システム Webサイト用共通スタイルシート
+ */
+
+/* --- 基本設定 & 変数 --- */
+:root {
+    --primary-color: #0d6efd; /* プライマリカラー (Bootstrapの青) */
+    --background-color: #121212; /* 背景色 (ダークグレー) */
+    --text-color: #e0e0e0;       /* 基本テキストカラー */
+    --header-bg: rgba(18, 18, 18, 0.85); /* ヘッダー背景 (少し透過) */
+    --footer-bg: #1a1a1a;       /* フッター背景 */
+    --font-family-base: 'Helvetica Neue', 'Arial', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    font-family: var(--font-family-base);
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.8;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #fff;
+}
+
+img, video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* --- ヘッダー --- */
+#page-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 5%;
+    box-sizing: border-box;
+    z-index: 1000;
+    background-color: var(--header-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Safari対応 */
+    transition: transform 0.4s ease-out;
+}
+
+/* ヘッダーの表示・非表示 */
+.header-hidden {
+    transform: translateY(-100%);
+}
+.header-visible {
+    transform: translateY(0);
+}
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.logo img {
+    height: 40px;
+}
+
+.login-button {
+    background-color: var(--primary-color);
+    color: #fff;
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.login-button:hover {
+    background-color: #0b5ed7;
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+
+/* --- mainコンテンツ --- */
+main {
+    width: 100%;
+}
+
+/* --- ヒーローセクション --- */
+.hero {
+    
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s ease-out, visibility 1s ease-out, height 1s ease-out;
+}
+
+#opening-video {
+    
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;  /* 画面の幅 100% */
+    height: 100vh; /* 画面の高さ 100% */
+    object-fit: cover; /* アスペクト比を維持して全体をカバー */
+    transition: opacity 1s ease-out;
+}
+
+/* ヒーローセクションを隠すためのクラス */
+.hero-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    height: 0;
+    min-height: 0;
+}
+
+.hero-hidden #opening-video {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* --- スクロールインジケーター --- */
+#scroll-indicator {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 40px;
+    border: 2px solid #fff;
+    border-radius: 20px;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+#scroll-indicator span {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 8px;
+    background-color: #fff;
+    border-radius: 2px;
+    animation: scroll-anim 2s infinite ease-out;
+}
+
+.scroll-hidden {
+    opacity: 0;
+}
+
+@keyframes scroll-anim {
+    0% {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, 10px);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+    }
+}
+
+
+/* --- 特長セクション --- */
+.features {
+    padding: 100px 5%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.feature-block {
+    display: flex;
+    align-items: center;
+    gap: 5%;
+    margin-bottom: 120px;
+}
+
+.feature-block.reverse {
+    flex-direction: row-reverse;
+}
+
+.feature-video-container {
+    flex: 1;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.feature-text-container {
+    flex: 1;
+}
+
+.feature-text-container h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.feature-text-container p {
+    font-size: 1.1rem;
+    color: #b0b0b0;
+}
+
+
+/* --- フッター --- */
+.footer {
+    background-color: var(--footer-bg);
+    padding: 60px 5%;
+    text-align: center;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-logo img {
+    height: 40px;
+    margin: 0 auto 30px auto;
+}
+
+.footer-links {
+    margin-bottom: 30px;
+}
+
+.footer-links a {
+    margin: 0 15px;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+    color: #fff;
+}
+
+/* SNSアイコンは空なので非表示。必要ならFont Awesomeなどを利用 */
+.footer-social {
+    display: none;
+}
+
+.copyright {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 30px;
+}
+
+
+/* --- レスポンシブ対応 (タブレット & スマートフォン) --- */
+@media (max-width: 992px) {
+    .feature-text-container h2 {
+        font-size: 2rem;
+    }
+}
+
+
+@media (max-width: 768px) {
+    .feature-block,
+    .feature-block.reverse {
+        flex-direction: column;
+        gap: 40px;
+        margin-bottom: 80px;
+    }
+
+    .feature-text-container {
+        text-align: center;
+    }
+
+    .feature-text-container h2 {
+        font-size: 1.8rem;
+    }
+    
+    .footer-links {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .footer-links a {
+        margin: 0;
+    }
+}
+
+body {
+    overflow-y: auto !important;
+}
+
+body.no-scroll {
+    overflow: hidden !important;
+}
