@@ -91,13 +91,16 @@ async function loadPredict() {
     const j = await r.json();
 
     document.getElementById("titleName").textContent = `（${j.name} / ${j.ticker}）`;
-    document.getElementById("last").textContent = fmt(j.last_close, 2);
+    
+    // --- ここを修正 ---
+    document.getElementById("last").textContent = fmt(j.close, 2);              // j.last_close -> j.close
     document.getElementById("asof").textContent = j.asof;
-    document.getElementById("pred").textContent = fmt(j.pred_close, 2);
-    document.getElementById("prob").textContent = fmt(j.prob_up);
+    document.getElementById("pred").textContent = fmt(j.expected_value, 2);     // j.pred_close -> j.expected_value
+    document.getElementById("prob").textContent = fmtP(j.probability);          // j.prob_up -> j.probability, fmtPを使用
     document.getElementById("model").textContent = j.model;
+    // --- 修正ここまで ---
 
-    drawChart(j.pred_close);
+    drawChart(j.expected_value); // pred_close -> expected_value
   } catch (e) {
     status.textContent = "予測取得に失敗: " + e.message;
     drawChart(null);

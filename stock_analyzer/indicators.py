@@ -54,7 +54,8 @@ def calculate_indicators(df: pd.DataFrame, frame: str = "1d") -> pd.DataFrame:
 
     # Volume indicators
     df["Vol_Ratio"] = df["Volume"] / df["Volume"].rolling(20).mean()
-    df["Volume_Surge"] = (df["Volume_Ratio"] > 2.0).astype(int)
+    df["Volume_Surge"] = (df["Vol_Ratio"] > 2.0).astype(int)
+
 
     # Return horizon
     df["Return_5D"] = df["Close"].pct_change(5)
