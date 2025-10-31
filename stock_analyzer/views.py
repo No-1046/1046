@@ -3,10 +3,15 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 import joblib
+import lightgbm as lgb
 
+from xgboost import XGBClassifier
 from django.http import JsonResponse, HttpRequest
 from django.shortcuts import render
 from django.conf import settings
+from .indicators import calculate_indicators, FEATURE_COLS
+
+
 
 # モデルへのパス
 MODEL_PATH = settings.BASE_DIR / "model.pkl"
@@ -14,15 +19,7 @@ MODEL_PATH = settings.BASE_DIR / "model.pkl"
 # --- 特徴量計算のダミー関数群 ---
 # 本来は features.py などに記述するロジックです
 def tz_naive_index(df): return df.tz_localize(None) if df.index.tz is not None else df
-def add_features(df, frame):
-    df['rsi14'] = 100 - (100 / (1 + df['Close'].diff(1).clip(lower=0).rolling(14).mean() / -df['Close'].diff(1).clip(upper=0).rolling(14).mean()))
-    df['ma5_20'] = df['Close'].rolling(5).mean() / df['Close'].rolling(20).mean() - 1
-    df['ma_slope20'] = df['Close'].rolling(20).mean().diff(1) / df['Close'].rolling(20).mean()
-    df['brk20'] = df['Close'] / df['Close'].rolling(20).max()
-    df['dd_252'] = df['Close'] / df['Close'].rolling(252).max() - 1
-    return df.dropna()
 def last_feature_row(df): return df.iloc[[-1]]
-FEATURE_COLS = ['rsi14', 'ma5_20', 'ma_slope20', 'brk20', 'dd_252']
 # --- ここまでダミー関数 ---
 
 def normalize_ticker(s: str) -> str:
@@ -68,29 +65,52 @@ def index(request: HttpRequest):
 
 #システム使用回数管理
 def some_feature_view(request):
-    if request.user.is_authenticated:
-        # ログインユーザーのプロフィールを取得
-        profile = request.user.userprofile 
-        
-        # 使用回数を1増やす
-        profile.usage_count += 1
-        profile.save() # データベースに保存するのを忘れずに
-        return request
-        
-        
+    profile = getattr(request.user, "userprofile", None)
 
-def get_series(request: HttpRequest):
+    # UserProfile が存在する場合のみ usage_count を更新
+    if profile is not None:
+        profile.usage_count += 1
+        profile.save()
+    else:
+        # ログインしていない or UserProfileがない場合はスキップ
+        print("UserProfile が存在しないため usage_count は更新されませんでした。")
+
+        
+def get_series(request):
     ticker = request.GET.get('ticker', '6501')
     frame = request.GET.get('frame', '1d')
     tk = normalize_ticker(ticker)
     df = fetch_ohlc(tk, interval=frame)
     if df is None:
         return JsonResponse({"error": f"{ticker}: no data found"}, status=404)
+
+    # 欲しいカラムだけ抽出
     df = df[["Open", "High", "Low", "Close"]].dropna()
     name = get_name_safe(tk)
-    rows = [{"t": str(ts.date()), "o": r["Open"], "h": r["High"], "l": r["Low"], "c": r["Close"]} for ts, r in df.iterrows()]
+
+    # pandas.Timestamp → str, numpy.float64 → float に変換
+    rows = [
+        {
+            "t": ts.strftime("%Y-%m-%d"),  # 日付を文字列化
+            "o": float(r["Open"].iloc[0]),
+            "h": float(r["High"].iloc[0]),
+            "l": float(r["Low"].iloc[0]),
+            "c": float(r["Close"].iloc[0]),
+
+        }
+        for ts, r in df.iterrows()
+    ]
+
+    # ユーザーの使用履歴更新（存在しない場合はスキップ）
     some_feature_view(request)
-    return JsonResponse({"ticker": tk, "name": name, "frame": frame, "rows": rows[-1200:]})
+
+    # 安全にJSON化
+    return JsonResponse({
+        "ticker": tk,
+        "name": name,
+        "frame": frame,
+        "rows": rows[-1200:]
+    }, safe=False)
 
 
 def get_predict(request: HttpRequest):
@@ -98,19 +118,42 @@ def get_predict(request: HttpRequest):
     frame = request.GET.get('frame', '1d')
     horizon = int(request.GET.get('horizon', 5))
     tk = normalize_ticker(ticker)
+    
+    # --- データ取得 ---
     df = fetch_ohlc(tk, interval=frame)
-    if df is None:
+    if df is None or df.empty:
         return JsonResponse({"error": f"{ticker}: no data found"}, status=404)
-    feats = add_features(df, frame=frame)
-    if feats.empty:
-        return JsonResponse({"error": "Not enough data to calculate features"}, status=400)
-    X = last_feature_row(feats).reindex(columns=FEATURE_COLS, fill_value=0.0)
+    
+    # --- 特徴量生成（学習時と同じ関数を利用） ---
+    n225 = yf.download("^N225", start="2018-01-01", end=pd.Timestamp.today().strftime('%Y-%m-%d'))
+    n225_close = n225["Close"] if not n225.empty else None
+    feats = calculate_indicators(df, frame=frame)
+
+    
+    # --- 最新行を取得 ---
+    last_row = feats.iloc[[-1]].copy()
+    
+    # --- 必要な列のみ reindex（足りない列は0埋め） ---
+    X = last_row.reindex(columns=FEATURE_COLS, fill_value=0.0)
+    
+    # --- モデル読込 ---
     model = get_model()
-    proba = float(model.predict_proba(X)[0][1])
+    
+    # --- 予測 ---
+    try:
+        proba = float(model.predict_proba(X)[0][1])
+    except Exception as e:
+        print(f"[WARN] 予測時エラー: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+    
     close = float(feats["Close"].iloc[-1])
     asof = str(feats.index[-1].date())
     name = get_name_safe(tk)
-    drift = (proba - 0.5) * (0.02 if frame=="1d" else (0.05 if frame=="1wk" else 0.08))
-    pred_close = close * (1 + drift)
-    some_feature_view(request)
-    return JsonResponse({"ticker": tk, "name": name, "asof": asof, "frame": frame, "last_close": close, "prob_up": proba, "pred_close": pred_close, "horizon": horizon, "model": type(model).__name__})
+    
+    return JsonResponse({
+        "ticker": ticker,
+        "name": name,
+        "asof": asof,
+        "close": close,
+        "probability": round(proba, 4)
+    })
