@@ -1,15 +1,15 @@
 FROM python:3.11-slim
 
+# LightGBMに必要なライブラリを追加
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+COPY requirements.txt /app/
 
-# 依存関係のインストール
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
-# アプリケーションコードをコピー
-COPY . .
+RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
-# staticfilesディレクトリを作成（collectstatic用）
-RUN mkdir -p /app/staticfiles
-
-EXPOSE 8000
+COPY . /app
+CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]

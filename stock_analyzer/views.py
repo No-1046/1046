@@ -116,83 +116,90 @@ def get_series(request):
 
 
 def get_predict(request: HttpRequest):
+    print("=== Debug: get_predict start ===")  # ★開始
+
+    # --- 1. パラメータ取得 ---
     ticker = request.GET.get('ticker', '6501')
     frame = request.GET.get('frame', '1d')
     horizon = int(request.GET.get('horizon', 5))
     tk = normalize_ticker(ticker)
     
-    # --- データ取得 ---
+    # --- 2. データ取得 ---
+    print(f"Debug: Fetching OHLC for {tk}...") # ★fetch前
     df = fetch_ohlc(tk, interval=frame)
+    name = get_name_safe(tk)
+
+    # ★ dfの状態確認
+    if df is None:
+        print("Error: df is None")
+    elif df.empty:
+        print("Error: df is empty")
+    else:
+        print(f"Debug: df shape = {df.shape}")
+        print(f"Debug: df tail(1) = \n{df.tail(1)}")
+
     if df is None or df.empty:
-        # データが取得できなかった場合は、エラーメッセージを返すか、適切なデフォルト値を設定
-        name = get_name_safe(tk) # ここで名前を取得
+        print("=== Debug: Returned 404 (No data) ===") # ★終了箇所特定
         return JsonResponse({
-            "ticker": ticker,
-            "name": name,
-            "asof": None, # データがないのでNone
-            "close": None, # データがないのでNone
-            "expected_value": None,
-            "probability": None,
-            "model": "No data available" # モデル名もなし
-        }, status=404) # 404 Not Found を返すのが適切かもしれません
+            "ticker": ticker, "name": name, "asof": None, "close": None,
+            "expected_value": None, "probability": None, "model": "No data available"
+        }, status=404)
 
-    # --- 特徴量生成（学習時と同じ関数を利用） ---
-    n225 = yf.download("^N225", start="2018-01-01", end=pd.Timestamp.today().strftime('%Y-%m-%d'))
-    n225_close = n225["Close"] if not n225.empty else None
+    # --- 3. 特徴量生成 ---
+    # 外部データの取得確認（念のため）
+    print("Debug: Downloading ^N225 for check...")
+    n225 = yf.download("^N225", start="2018-01-01", end=pd.Timestamp.today().strftime('%Y-%m-%d'), progress=False)
+    print(f"Debug: ^N225 empty? = {n225.empty}")
+
+    print("Debug: Calculating indicators...") # ★計算開始
     feats = calculate_indicators(df, frame=frame)
-
-    # featsが空の場合も考慮（calculate_indicatorsでエラーが起きた場合など）
+    
+    # ★ featsの状態確認 (ここで0行になっていないか？)
     if feats.empty:
-        name = get_name_safe(tk)
+        print("Error: feats is empty (All rows dropped?)")
+    else:
+        print(f"Debug: feats shape = {feats.shape}")
+        print(f"Debug: feats tail(1) indices = {feats.index[-1]}")
+
+    if feats.empty:
+        print("=== Debug: Returned 500 (Feature calc failed) ===") # ★終了箇所特定
         return JsonResponse({
-            "ticker": ticker,
-            "name": name,
-            "asof": None,
-            "close": None,
-            "expected_value": None,
-            "probability": None,
-            "model": "Feature calculation failed"
+            "ticker": ticker, "name": name, "asof": None, "close": None,
+            "expected_value": None, "probability": None, "model": "Feature calculation failed"
         }, status=500)
     
-    # --- 最新行を取得 ---
+    # --- 4. 予測のためのデータ準備 ---
     last_row = feats.iloc[[-1]].copy()
-    
-    # --- 必要な列のみ reindex（足りない列は0埋め） ---
+    # fill_value=0.0 で埋めているので、ここでNaNになることはないはず
     X = last_row.reindex(columns=FEATURE_COLS, fill_value=0.0)
     
-    # --- モデル読込 ---
+    print(f"Debug: X shape for prediction = {X.shape}") # ★予測データ確認
+
+    # --- 5. モデル読込と予測 ---
     model = get_model()
-
-    print("[DEBUG] model.feature_names_in_:", model.feature_names_in_)
-
     
-    # --- 予測 ---
-    proba = 0.5 # デフォルト値
     try:
         proba = float(model.predict_proba(X)[0][1])
+        print(f"Debug: Prediction successful. Calculated proba = {proba}")
     except Exception as e:
         print(f"[WARN] 予測時エラー: {e}")
-        # 予測エラーの場合もNoneなどを返す
-        return JsonResponse({"error": f"Prediction error: {e}"}, status=500)
+        import traceback
+        traceback.print_exc() # ★詳細なエラー内容を表示
+        return JsonResponse({"error": str(e)}, status=500)
     
+    # --- 6. 値の確定 ---
     close = float(feats["Close"].iloc[-1].item())
-
     asof = str(feats.index[-1].date())
-    name = get_name_safe(tk)
-    
-    # expected_value の計算を追加 (元コードには無かったが、画像を見る限り必要そう)
-    # 仮に上昇確率0.5で変化なし、0.6で+10%、0.4で-10%といったロジックを想定
-    # 例として、close * (1 + (proba - 0.5) * 2 * 0.1)  # probaが0.5なら変化なし、0.6なら+2%、0.4なら-2%
-    # 画像の expected_value が何を意味するかに合わせて調整してください。
-    # 例えば、close * (1 + (proba - 0.5)) のようなシンプルなものかもしれません。
-    expected_value = round(close * (1 + (proba - 0.5)), 2) # 仮の計算式
+    expected_value = round(close * (1 + (proba - 0.5)), 2)
 
+    print("=== Debug: Successfully returned JSON ===") # ★正常終了
+    
     return JsonResponse({
         "ticker": ticker,
         "name": name,
         "asof": asof,
         "close": close,
-        "expected_value": expected_value, # 計算結果を追加
+        "expected_value": expected_value,
         "probability": round(proba, 4),
         "model": type(model).__name__
     })

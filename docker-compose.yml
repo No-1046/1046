@@ -5,12 +5,14 @@ services:
     build: .
     volumes:
       - .:/app
-      - static_volume:/app/staticfiles  # 名前付きボリュームを使用
+      # 変更点: カレントディレクトリの staticfiles フォルダをマウント
+      - ./staticfiles:/app/staticfiles
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              gunicorn myproject.wsgi:application --bind 0.0.0.0:8000"
     environment:
       - DJANGO_SETTINGS_MODULE=myproject.settings
+      - PYTHONUNBUFFERED=1
 
   nginx:
     image: nginx:latest
@@ -18,9 +20,11 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - static_volume:/app/staticfiles:ro  # 同じボリュームを読み取り専用でマウント
+      # 変更点: Nginxもカレントディレクトリの同じフォルダを見る
+      - ./staticfiles:/app/staticfiles:ro
     depends_on:
       - app
 
-volumes:
-  static_volume:  # 名前付きボリュームの定義
+# 下の volumes 定義は不要になったので削除します
+# volumes:
+#   static_volume:
