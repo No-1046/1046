@@ -194,15 +194,17 @@ def get_predict(request: HttpRequest):
 
     print("=== Debug: Successfully returned JSON ===") # ★正常終了
     
+    # Django views.py の戻り値 (修正後)
     return JsonResponse({
         "ticker": ticker,
         "name": name,
         "asof": asof,
-        "close": close,
-        "expected_value": expected_value,
-        "probability": round(proba, 4),
+        "last_close": close,          # <- close を last_close に変更
+        "pred_close": expected_value, # <- expected_value を pred_close に変更
+        "prob_up": round(proba, 4),   # <- probability を prob_up に変更
         "model": type(model).__name__
     })
+
 
     # --- 特徴量生成（学習時と同じ関数を利用） ---
     n225 = yf.download("^N225", start="2018-01-01", end=pd.Timestamp.today().strftime('%Y-%m-%d'))
