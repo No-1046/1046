@@ -11,5 +11,5 @@ COPY requirements.txt /app/
 
 RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
 
-COPY . /app
+# COPY . /app
 CMD ["gunicorn", "myproject.wsgi:application", "--bind", "0.0.0.0:8000"]
