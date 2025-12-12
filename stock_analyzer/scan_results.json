@@ -1,0 +1,538 @@
+{
+  "timestamp": "2025-12-12T10:29:27.599235",
+  "count": 76,
+  "results": [
+    {
+      "ticker": "3825.T",
+      "name": "REMIXPOINT INC",
+      "prob_up": 0.9695,
+      "close": 268.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4568.T",
+      "name": "DAIICHI SANKYO COMPANY LIMITED",
+      "prob_up": 0.9459,
+      "close": 3382.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7733.T",
+      "name": "OLYMPUS CORPORATION",
+      "prob_up": 0.8034,
+      "close": 2052.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4755.T",
+      "name": "RAKUTEN GROUP INC",
+      "prob_up": 0.7471,
+      "close": 930.2999877929688,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4543.T",
+      "name": "TERUMO CORP",
+      "prob_up": 0.7395,
+      "close": 2323.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4324.T",
+      "name": "DENTSU GROUP INC",
+      "prob_up": 0.7356,
+      "close": 3320.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6367.T",
+      "name": "DAIKIN INDUSTRIES",
+      "prob_up": 0.7344,
+      "close": 19870.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "2801.T",
+      "name": "KIKKOMAN CORP",
+      "prob_up": 0.7095,
+      "close": 1428.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6645.T",
+      "name": "OMRON CORP",
+      "prob_up": 0.6893,
+      "close": 4070.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4911.T",
+      "name": "SHISEIDO COMPANY LIMITED",
+      "prob_up": 0.6715,
+      "close": 2366.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7974.T",
+      "name": "NINTENDO CO LTD",
+      "prob_up": 0.6406,
+      "close": 11635.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6758.T",
+      "name": "SONY GROUP CORPORATION",
+      "prob_up": 0.6014,
+      "close": 4137.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4704.T",
+      "name": "TREND MICRO INC",
+      "prob_up": 0.5788,
+      "close": 6727.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4528.T",
+      "name": "ONO PHARMACEUTICAL CO",
+      "prob_up": 0.472,
+      "close": 2185.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9432.T",
+      "name": "NTT INC",
+      "prob_up": 0.4691,
+      "close": 155.3000030517578,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9434.T",
+      "name": "SOFTBANK CORP.",
+      "prob_up": 0.4625,
+      "close": 217.1999969482422,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4005.T",
+      "name": "SUMITOMO CHEMICAL COMPANY",
+      "prob_up": 0.4618,
+      "close": 459.79998779296875,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4063.T",
+      "name": "SHIN-ETSU CHEMICAL CO",
+      "prob_up": 0.4233,
+      "close": 4789.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7201.T",
+      "name": "NISSAN MOTOR CO",
+      "prob_up": 0.4163,
+      "close": 401.6000061035156,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "2269.T",
+      "name": "MEIJI HOLDINGS CO LTD",
+      "prob_up": 0.4088,
+      "close": 3314.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8035.T",
+      "name": "TOKYO ELECTRON",
+      "prob_up": 0.3428,
+      "close": 31880.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7267.T",
+      "name": "HONDA MOTOR CO",
+      "prob_up": 0.3379,
+      "close": 1592.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9433.T",
+      "name": "KDDI CORPORATION",
+      "prob_up": 0.332,
+      "close": 2689.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "2914.T",
+      "name": "JAPAN TOBACCO INC",
+      "prob_up": 0.3262,
+      "close": 5775.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4452.T",
+      "name": "KAO CORP",
+      "prob_up": 0.3076,
+      "close": 6347.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6273.T",
+      "name": "SMC CORP",
+      "prob_up": 0.3054,
+      "close": 56720.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4519.T",
+      "name": "CHUGAI PHARMACEUTICAL CO",
+      "prob_up": 0.3041,
+      "close": 8597.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7269.T",
+      "name": "SUZUKI MOTOR CORP",
+      "prob_up": 0.2962,
+      "close": 2299.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6305.T",
+      "name": "HITACHI CONSTRUCTION MACHINERY",
+      "prob_up": 0.2846,
+      "close": 4581.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6954.T",
+      "name": "FANUC CORPORATION",
+      "prob_up": 0.2624,
+      "close": 6202.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4307.T",
+      "name": "NOMURA RESEARCH INSTITUTE",
+      "prob_up": 0.2603,
+      "close": 6172.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6326.T",
+      "name": "KUBOTA CORP",
+      "prob_up": 0.2582,
+      "close": 2265.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8801.T",
+      "name": "MITSUI FUDOSAN",
+      "prob_up": 0.2514,
+      "close": 1820.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4502.T",
+      "name": "TAKEDA PHARMACEUTICAL CO LTD",
+      "prob_up": 0.2498,
+      "close": 4468.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6723.T",
+      "name": "RENESAS ELECTRONICS CORP",
+      "prob_up": 0.239,
+      "close": 2164.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "3382.T",
+      "name": "SEVEN & I HOLDINGS CO LTD",
+      "prob_up": 0.2387,
+      "close": 2170.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9735.T",
+      "name": "SECOM CO",
+      "prob_up": 0.1937,
+      "close": 5516.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "3861.T",
+      "name": "OJI HOLDINGS CORP",
+      "prob_up": 0.1905,
+      "close": 820.0999755859375,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9101.T",
+      "name": "NIPPON YUSEN KABUSHIKI KAISHA",
+      "prob_up": 0.1823,
+      "close": 4965.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6920.T",
+      "name": "LASERTEC CORP",
+      "prob_up": 0.1724,
+      "close": 30670.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "3659.T",
+      "name": "NEXON CO LTD",
+      "prob_up": 0.1509,
+      "close": 3800.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6902.T",
+      "name": "DENSO CORP",
+      "prob_up": 0.1425,
+      "close": 2124.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4188.T",
+      "name": "MITSUBISHI CHEMICAL GROUP CORP",
+      "prob_up": 0.1334,
+      "close": 906.9000244140625,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6178.T",
+      "name": "JAPAN POST HLDGS CO LTD",
+      "prob_up": 0.133,
+      "close": 1608.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7182.T",
+      "name": "JAPAN POST BANK CO LTD",
+      "prob_up": 0.122,
+      "close": 2109.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6702.T",
+      "name": "FUJITSU",
+      "prob_up": 0.0953,
+      "close": 4190.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7741.T",
+      "name": "HOYA CORP",
+      "prob_up": 0.0951,
+      "close": 23860.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6501.T",
+      "name": "HITACHI",
+      "prob_up": 0.09,
+      "close": 4943.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7012.T",
+      "name": "KAWASAKI HEAVY INDUSTRIES",
+      "prob_up": 0.0887,
+      "close": 11425.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9022.T",
+      "name": "CENTRAL JAPAN RAILWAY CO",
+      "prob_up": 0.0858,
+      "close": 4459.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7203.T",
+      "name": "TOYOTA MOTOR CORP",
+      "prob_up": 0.0847,
+      "close": 3210.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4503.T",
+      "name": "ASTELLAS PHARMA",
+      "prob_up": 0.0844,
+      "close": 2054.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6861.T",
+      "name": "KEYENCE CORP",
+      "prob_up": 0.0834,
+      "close": 55900.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6752.T",
+      "name": "PANASONIC HOLDINGS CORP",
+      "prob_up": 0.0807,
+      "close": 2097.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7751.T",
+      "name": "CANON INC",
+      "prob_up": 0.077,
+      "close": 4728.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9020.T",
+      "name": "EAST JAPAN RAILWAY CO",
+      "prob_up": 0.0762,
+      "close": 3997.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4901.T",
+      "name": "FUJIFILM HOLDINGS CORPORATION",
+      "prob_up": 0.0612,
+      "close": 3457.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9984.T",
+      "name": "SOFTBANK GROUP CORP",
+      "prob_up": 0.0605,
+      "close": 17695.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6098.T",
+      "name": "RECRUIT HOLDINGS CO LTD",
+      "prob_up": 0.0599,
+      "close": 8288.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6981.T",
+      "name": "MURATA MANUFACTURING CO",
+      "prob_up": 0.0553,
+      "close": 3378.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "7011.T",
+      "name": "MITSUBISHI HEAVY INDUSTRIES",
+      "prob_up": 0.0476,
+      "close": 4112.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "9104.T",
+      "name": "MITSUI O.S.K. LINES LTD",
+      "prob_up": 0.0368,
+      "close": 4585.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8253.T",
+      "name": "CREDIT SAISON CO",
+      "prob_up": 0.0353,
+      "close": 4105.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8473.T",
+      "name": "SBI HOLDINGS INC",
+      "prob_up": 0.0353,
+      "close": 3403.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8830.T",
+      "name": "SUMITOMO REALTY & DEVELOPMENT C",
+      "prob_up": 0.0349,
+      "close": 7868.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "4021.T",
+      "name": "NISSAN CHEMICAL CORPORATION",
+      "prob_up": 0.0348,
+      "close": 5442.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8766.T",
+      "name": "TOKIO MARINE HOLDINGS INC",
+      "prob_up": 0.0278,
+      "close": 5678.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8306.T",
+      "name": "MITSUBISHI UFJ FINANCIAL GROUP ",
+      "prob_up": 0.0276,
+      "close": 2483.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "5020.T",
+      "name": "ENEOS HOLDINGS INC",
+      "prob_up": 0.0191,
+      "close": 1087.5,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8604.T",
+      "name": "NOMURA HOLDINGS INC.",
+      "prob_up": 0.0184,
+      "close": 1295.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8316.T",
+      "name": "SUMITOMO MITSUI FINANCIAL GROUP",
+      "prob_up": 0.017,
+      "close": 4953.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "6503.T",
+      "name": "MITSUBISHI ELECTRIC CORP",
+      "prob_up": 0.0123,
+      "close": 4709.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8031.T",
+      "name": "MITSUI & CO",
+      "prob_up": 0.0115,
+      "close": 4595.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8058.T",
+      "name": "MITSUBISHI CORP",
+      "prob_up": 0.0109,
+      "close": 3763.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8591.T",
+      "name": "ORIX CORPORATION",
+      "prob_up": 0.0083,
+      "close": 4437.0,
+      "date": "2025-12-01"
+    },
+    {
+      "ticker": "8001.T",
+      "name": "ITOCHU CORP",
+      "prob_up": 0.0034,
+      "close": 9809.0,
+      "date": "2025-12-01"
+    }
+  ]
+}

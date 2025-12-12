@@ -3,25 +3,23 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 import joblib
-import lightgbm as lgb
+import json
+from datetime import datetime
 
-from xgboost import XGBClassifier
 from django.http import JsonResponse, HttpRequest
 from django.shortcuts import render
 from django.conf import settings
-from .indicators import calculate_indicators, FEATURE_COLS
+from django.core.cache import cache
+from .indicators import calculate_indicators
 
+# モデルパス
+MODEL_DIR = settings.BASE_DIR / "stock_analyzer"
+LGBM_PATH = MODEL_DIR / "lgbm_final.pkl"
+XGB_PATH = MODEL_DIR / "xgb_final.pkl"
+CONFIG_PATH = MODEL_DIR / "model_config.pkl"
 
-
-# モデルへのパス
-MODEL_PATH = MODEL_PATH = settings.BASE_DIR / "stock_analyzer" / "model.pkl"
-
-
-# --- 特徴量計算のダミー関数群 ---
-# 本来は features.py などに記述するロジックです
-def tz_naive_index(df): return df.tz_localize(None) if df.index.tz is not None else df
-def last_feature_row(df): return df.iloc[[-1]]
-# --- ここまでダミー関数 ---
+def tz_naive_index(df): 
+    return df.tz_localize(None) if df.index.tz is not None else df
 
 def normalize_ticker(s: str) -> str:
     s = s.strip().upper()
@@ -30,10 +28,20 @@ def normalize_ticker(s: str) -> str:
     return s
 
 def fetch_ohlc(ticker: str, interval: str = "1d", years: int = 5) -> pd.DataFrame:
-    period = f"{years}y" if interval in ("1d", "1wk","1mo") else f"{max(years, 10)}y"
+    period = f"{years}y"
     df = yf.download(ticker, period=period, interval=interval,
-                     progress=False, auto_adjust=True, group_by="column")
-    return None if df is None or df.empty else tz_naive_index(df)
+                     progress=False, auto_adjust=True)
+    
+    if df is None or df.empty:
+        return None
+
+    if isinstance(df.columns, pd.MultiIndex):
+        try:
+            df.columns = df.columns.get_level_values(0)
+        except IndexError:
+            pass
+
+    return tz_naive_index(df)
 
 def get_name_safe(ticker: str) -> str:
     try:
@@ -42,71 +50,64 @@ def get_name_safe(ticker: str) -> str:
     except Exception:
         return ticker
 
-_model = None
-def get_model():
-    global _model
-    if _model is not None:
-        return _model
-
-    if MODEL_PATH.exists():
-        _model = joblib.load(MODEL_PATH)
-        return _model
-
-    # model.pkl が無い場合のみ、Fallbackとしてゼロ予測
-    class Baseline:
-        feature_names_in_ = FEATURE_COLS
-        def predict_proba(self, X: pd.DataFrame):
-            return np.c_[np.ones(len(X))*0.5, np.ones(len(X))*0.5]
-    _model = Baseline()
-    return _model
-
+_models = {}
+def get_models():
+    """ハイブリッドモデルとコンフィグをロード"""
+    global _models
+    if _models:
+        return _models
+    
+    try:
+        if LGBM_PATH.exists() and XGB_PATH.exists() and CONFIG_PATH.exists():
+            _models = {
+                'lgbm': joblib.load(LGBM_PATH),
+                'xgb': joblib.load(XGB_PATH),
+                'config': joblib.load(CONFIG_PATH)
+            }
+            print(f"✓ Loaded hybrid models (threshold={_models['config']['threshold']:.3f})")
+        else:
+            print("⚠ Model files not found - using fallback")
+            _models = None
+    except Exception as e:
+        print(f"⚠ Error loading models: {e}")
+        _models = None
+    
+    return _models
 
 def index(request: HttpRequest):
     return render(request, 'index.html')
 
-
-#システム使用回数管理
 def some_feature_view(request):
     profile = getattr(request.user, "userprofile", None)
-
-    # UserProfile が存在する場合のみ usage_count を更新
     if profile is not None:
         profile.usage_count += 1
         profile.save()
-    else:
-        # ログインしていない or UserProfileがない場合はスキップ
-        print("UserProfile が存在しないため usage_count は更新されませんでした。")
 
-        
 def get_series(request):
     ticker = request.GET.get('ticker', '6501')
     frame = request.GET.get('frame', '1d')
     tk = normalize_ticker(ticker)
     df = fetch_ohlc(tk, interval=frame)
+    
     if df is None:
         return JsonResponse({"error": f"{ticker}: no data found"}, status=404)
 
-    # 欲しいカラムだけ抽出
     df = df[["Open", "High", "Low", "Close"]].dropna()
     name = get_name_safe(tk)
 
-    # pandas.Timestamp → str, numpy.float64 → float に変換
     rows = [
         {
-            "t": ts.strftime("%Y-%m-%d"),  # 日付を文字列化
-            "o": float(r["Open"].iloc[0]),
-            "h": float(r["High"].iloc[0]),
-            "l": float(r["Low"].iloc[0]),
-            "c": float(r["Close"].iloc[0]),
-
+            "t": ts.strftime("%Y-%m-%d"),
+            "o": float(row["Open"]),
+            "h": float(row["High"]),
+            "l": float(row["Low"]),
+            "c": float(row["Close"]),
         }
-        for ts, r in df.iterrows()
+        for ts, row in df.iterrows()
     ]
 
-    # ユーザーの使用履歴更新（存在しない場合はスキップ）
     some_feature_view(request)
 
-    # 安全にJSON化
     return JsonResponse({
         "ticker": tk,
         "name": name,
@@ -114,135 +115,211 @@ def get_series(request):
         "rows": rows[-1200:]
     }, safe=False)
 
-
 def get_predict(request: HttpRequest):
-    print("=== Debug: get_predict start ===")  # ★開始
-
-    # --- 1. パラメータ取得 ---
+    """ハイブリッドモデルで予測"""
     ticker = request.GET.get('ticker', '6501')
     frame = request.GET.get('frame', '1d')
-    horizon = int(request.GET.get('horizon', 5))
     tk = normalize_ticker(ticker)
     
-    # --- 2. データ取得 ---
-    print(f"Debug: Fetching OHLC for {tk}...") # ★fetch前
+    # 検索履歴を保存
+    save_search_history(request, tk)
+    
+    # データ取得
     df = fetch_ohlc(tk, interval=frame)
     name = get_name_safe(tk)
 
-    # ★ dfの状態確認
-    if df is None:
-        print("Error: df is None")
-    elif df.empty:
-        print("Error: df is empty")
-    else:
-        print(f"Debug: df shape = {df.shape}")
-        print(f"Debug: df tail(1) = \n{df.tail(1)}")
-
     if df is None or df.empty:
-        print("=== Debug: Returned 404 (No data) ===") # ★終了箇所特定
         return JsonResponse({
-            "ticker": ticker, "name": name, "asof": None, "close": None,
-            "expected_value": None, "probability": None, "model": "No data available"
+            "ticker": ticker, "name": name, "asof": None, "last_close": None,
+            "pred_close": None, "prob_up": None, "model": "No data available"
         }, status=404)
 
-    # --- 3. 特徴量生成 ---
-    # 外部データの取得確認（念のため）
-    print("Debug: Downloading ^N225 for check...")
-    n225 = yf.download("^N225", start="2018-01-01", end=pd.Timestamp.today().strftime('%Y-%m-%d'), progress=False)
-    print(f"Debug: ^N225 empty? = {n225.empty}")
-
-    print("Debug: Calculating indicators...") # ★計算開始
-    feats = calculate_indicators(df, frame=frame)
-    
-    # ★ featsの状態確認 (ここで0行になっていないか？)
-    if feats.empty:
-        print("Error: feats is empty (All rows dropped?)")
-    else:
-        print(f"Debug: feats shape = {feats.shape}")
-        print(f"Debug: feats tail(1) indices = {feats.index[-1]}")
-
-    if feats.empty:
-        print("=== Debug: Returned 500 (Feature calc failed) ===") # ★終了箇所特定
+    # 特徴量生成
+    try:
+        feats = calculate_indicators(df, frame=frame, ticker=tk)
+    except Exception as e:
+        print(f"Error in calculate_indicators: {e}")
         return JsonResponse({
-            "ticker": ticker, "name": name, "asof": None, "close": None,
-            "expected_value": None, "probability": None, "model": "Feature calculation failed"
+            "ticker": ticker, "name": name, "asof": None, "last_close": None,
+            "pred_close": None, "prob_up": None, "model": "Feature calculation failed"
         }, status=500)
     
-    # --- 4. 予測のためのデータ準備 ---
-    last_row = feats.iloc[[-1]].copy()
-    # fill_value=0.0 で埋めているので、ここでNaNになることはないはず
-    X = last_row.reindex(columns=FEATURE_COLS, fill_value=0.0)
+    if feats.empty:
+        return JsonResponse({
+            "ticker": ticker, "name": name, "asof": None, "last_close": None,
+            "pred_close": None, "prob_up": None, "model": "No valid features"
+        }, status=500)
     
-    print(f"Debug: X shape for prediction = {X.shape}") # ★予測データ確認
-
-    # --- 5. モデル読込と予測 ---
-    model = get_model()
+    # モデルロード
+    models = get_models()
+    
+    if models is None:
+        # Fallback: 単純な0.5予測
+        close = float(feats["Close"].iloc[-1])
+        asof = str(feats.index[-1].date())
+        return JsonResponse({
+            "ticker": ticker,
+            "name": name,
+            "asof": asof,
+            "last_close": close,
+            "pred_close": close,
+            "prob_up": 0.5,
+            "model": "Fallback (no trained model)"
+        })
+    
+    # 予測データ準備
+    last_row = feats.iloc[[-1]].copy()
+    
+    config = models['config']
+    base_cols = config['base_features']
+    all_cols = config['all_features']
+    
+    # XGBoost用（Base特徴量）
+    X_xgb = last_row.reindex(columns=base_cols, fill_value=0.0)
+    
+    # LightGBM用（All特徴量 + Ticker）
+    X_lgb = last_row.reindex(columns=all_cols + ['Ticker'], fill_value=0.0)
+    if 'Ticker' in X_lgb.columns:
+        X_lgb['Ticker'] = X_lgb['Ticker'].astype('category')
     
     try:
-        proba = float(model.predict_proba(X)[0][1])
-        print(f"Debug: Prediction successful. Calculated proba = {proba}")
+        # 予測
+        proba_xgb = float(models['xgb'].predict_proba(X_xgb)[0][1])
+        proba_lgb = float(models['lgbm'].predict_proba(X_lgb)[0][1])
+        
+        # アンサンブル
+        w_xgb = config.get('w_xgb', 0.6)
+        w_lgb = config.get('w_lgb', 0.4)
+        proba = w_xgb * proba_xgb + w_lgb * proba_lgb
+        
+        print(f"Prediction: XGB={proba_xgb:.4f}, LGBM={proba_lgb:.4f}, Ensemble={proba:.4f}")
+        
     except Exception as e:
-        print(f"[WARN] 予測時エラー: {e}")
+        print(f"Prediction error: {e}")
         import traceback
-        traceback.print_exc() # ★詳細なエラー内容を表示
+        traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
     
-    # --- 6. 値の確定 ---
-    close = float(feats["Close"].iloc[-1].item())
+    # 結果計算
+    close = float(feats["Close"].iloc[-1])
     asof = str(feats.index[-1].date())
-    expected_value = round(close * (1 + (proba - 0.5)), 2)
-
-    print("=== Debug: Successfully returned JSON ===") # ★正常終了
     
-    # Django views.py の戻り値 (修正後)
+    # ★ リターン統計を使った期待値計算
+    config = models['config']
+    return_stats = config.get('return_stats')
+    
+    if return_stats:
+        # 確率から分位を推定
+        proba_capped = max(0.0, min(1.0, proba))
+        decile = int(proba_capped * 9.999)  # 0-9のインデックス
+        
+        decile_stats = return_stats['decile_stats'].get(decile)
+        if decile_stats:
+            # その分位の平均リターンを使用
+            expected_return = decile_stats['mean']
+            
+            # 時間軸でスケール調整（日足基準なので）
+            time_scale = {'1d': 1.0, '1wk': 5.0, '1mo': 21.0}.get(frame, 1.0)
+            expected_return *= time_scale
+            
+            pred_close = round(close * (1 + expected_return), 2)
+            
+            print(f"Frame={frame}, Proba={proba:.4f}, Decile={decile}, "
+                  f"Expected Return={expected_return:.4%}, Pred={pred_close}")
+        else:
+            # fallback
+            expected_return = (proba - 0.5) * 0.06
+            pred_close = round(close * (1 + expected_return), 2)
+    else:
+        # リターン統計がない場合（旧モデル）
+        deviation = proba - 0.5
+        scale_map = {'1d': 0.03, '1wk': 0.08, '1mo': 0.15}
+        scale = scale_map.get(frame, 0.03)
+        amplified = np.tanh(deviation * 3)
+        expected_return = amplified * scale
+        pred_close = round(close * (1 + expected_return), 2)
+        
+        print(f"Frame={frame}, Proba={proba:.4f}, Change={expected_return:.4%} (no stats)")
+    
     return JsonResponse({
         "ticker": ticker,
         "name": name,
         "asof": asof,
-        "last_close": close,          # <- close を last_close に変更
-        "pred_close": expected_value, # <- expected_value を pred_close に変更
-        "prob_up": round(proba, 4),   # <- probability を prob_up に変更
-        "model": type(model).__name__
+        "last_close": close,
+        "pred_close": pred_close,
+        "prob_up": round(proba, 4),
+        "model": f"Hybrid (XGB={w_xgb}, LGBM={w_lgb})"
     })
 
+# ============== 新機能: スキャン & 検索履歴 ==============
 
-    # --- 特徴量生成（学習時と同じ関数を利用） ---
-    n225 = yf.download("^N225", start="2018-01-01", end=pd.Timestamp.today().strftime('%Y-%m-%d'))
-    n225_close = n225["Close"] if not n225.empty else None
-    feats = calculate_indicators(df, frame=frame)
+def save_search_history(request, ticker):
+    """検索履歴を保存（セッション or DB）"""
+    # セッションに保存
+    history = request.session.get('search_history', [])
+    
+    # 既存エントリを削除
+    history = [h for h in history if h['ticker'] != ticker]
+    
+    # 新しいエントリを先頭に追加
+    history.insert(0, {
+        'ticker': ticker,
+        'timestamp': datetime.now().isoformat()
+    })
+    
+    # 最大20件まで保持
+    request.session['search_history'] = history[:20]
 
-    
-    # --- 最新行を取得 ---
-    last_row = feats.iloc[[-1]].copy()
-    
-    # --- 必要な列のみ reindex（足りない列は0埋め） ---
-    X = last_row.reindex(columns=FEATURE_COLS, fill_value=0.0)
-    
-    # --- モデル読込 ---
-    model = get_model()
+def get_search_history(request):
+    """検索履歴を取得"""
+    history = request.session.get('search_history', [])
+    return JsonResponse({'history': history})
 
-    model = get_model()
-    print("[DEBUG] model.feature_names_in_:", model.feature_names_in_)
-
+def get_top_stocks(request):
+    """スキャン結果から上位銘柄を取得"""
+    # キャッシュをチェック（5分間有効）
+    cached = cache.get('top_stocks')
+    if cached:
+        return JsonResponse(cached)
     
-    # --- 予測 ---
+    # 保存された結果を読み込み
+    results_path = MODEL_DIR / "scan_results.json"
+    
+    if not results_path.exists():
+        return JsonResponse({
+            'error': 'No scan results available',
+            'message': 'スキャンを実行してください'
+        }, status=404)
+    
     try:
-        proba = float(model.predict_proba(X)[0][1])
+        with open(results_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # キャッシュに保存
+        cache.set('top_stocks', data, 300)  # 5分
+        
+        return JsonResponse(data)
+    
     except Exception as e:
-        print(f"[WARN] 予測時エラー: {e}")
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({'error': str(e)}, status=500)
+
+def trigger_scan(request):
+    """スキャンを手動でトリガー（管理者のみ）"""
+    # 本番では権限チェックが必要
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'Permission denied'}, status=403)
     
-    close = float(feats["Close"].iloc[-1].item())
-
-    asof = str(feats.index[-1].date())
-    name = get_name_safe(tk)
-    
-    return JsonResponse({
-        "ticker": ticker,
-        "name": name,
-        "asof": asof,
-        "close": close,
-        "probability": round(proba, 4)
-    })
-
-
+    # バックグラウンドタスクとして実行（Celeryなど）
+    # ここでは簡易的に同期実行
+    try:
+        from . import scanner
+        results = scanner.scan_all_stocks(max_stocks=20)  # テスト用に20銘柄
+        scanner.save_results(results)
+        
+        return JsonResponse({
+            'status': 'completed',
+            'count': len(results),
+            'top_10': results[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
