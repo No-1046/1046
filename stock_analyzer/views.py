@@ -75,7 +75,7 @@ def get_models():
     return _models
 
 def index(request: HttpRequest):
-    return render(request, 'index.html')
+    return render(request, 'stock_analyzer/index.html')
 
 def some_feature_view(request):
     profile = getattr(request.user, "userprofile", None)

@@ -16,7 +16,7 @@ html, body {
    ========================= */
 .img-control {
   /*display: block;                /* インラインではなくブロック扱いに */
-  max-width: 5%;               /* 親要素に合わせて縮小（拡大しない） */
+  max-width: 7.5%;               /* 親要素に合わせて縮小（拡大しない） */
   height: auto;                  /* アスペクト比を保つ */
   border-radius: 0.75rem;        /* 角丸 (rounded-xl相当) */
   border: 1px solid rgba(100,116,139,0.3); /* 薄い枠線 */
@@ -38,6 +38,7 @@ html, body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  background: rgba(15, 23, 42, 0.6);
 }
 
 /* カード共通デザイン */

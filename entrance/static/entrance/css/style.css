@@ -6,7 +6,7 @@
 /* --- 基本設定 & 変数 --- */
 :root {
     --primary-color: #0d6efd; /* プライマリカラー (Bootstrapの青) */
-    --background-color: #121212; /* 背景色 (ダークグレー) */
+    --background-color: #0f172a;     /* 背景（透過時に暗色が見える） */
     --text-color: #e0e0e0;       /* 基本テキストカラー */
     --header-bg: rgba(18, 18, 18, 0.85); /* ヘッダー背景 (少し透過) */
     --footer-bg: #1a1a1a;       /* フッター背景 */

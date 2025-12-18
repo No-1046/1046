@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+
+# ==========================================
+# ★追加: yfinanceのSSLエラー回避設定
+# ==========================================
+os.environ["YF_USE_CURL_CFFI"] = "false"
+os.environ["YF_VERBOSE"] = "true"
+# ==========================================
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -38,8 +47,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'stock_analyzer',
+    'news_analyzer',
     'accounts',  # 追加
-    'entrance',      # 追加
+    'entrance',  # 追加
 ]
 
 MIDDLEWARE = [
@@ -105,9 +115,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+# 日本語設定に変更することをお勧めします（任意）
+LANGUAGE_CODE = 'ja'  # 元: 'en-us'
 
-TIME_ZONE = 'UTC'
+# 日本時間に変更（任意）
+TIME_ZONE = 'Asia/Tokyo' # 元: 'UTC'
 
 USE_I18N = True
 
@@ -127,7 +139,7 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesSto
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'accounts:home'          # ログインしていない時の転送先
-LOGIN_REDIRECT_URL = 'atock_analyzer:api_predict'    # ログイン成功後の転送先
+LOGIN_REDIRECT_URL = 'stock_analyzer:api_predict'    # ログイン成功後の転送先
 LOGOUT_REDIRECT_URL = 'entrance:home'     # ログアウト後の転送先
 
 APPEND_SLASH = False

@@ -1,0 +1,148 @@
+@charset "UTF-8";
+
+/* =========================================
+   Base Settings (from common.css + style.css)
+   ========================================= */
+html, body {
+  /* height: 100%; を min-height に変更し、コンテンツ量に応じて伸びるように修正 */
+  min-height: 100vh;
+  margin: 0;
+  
+  /* style.cssの挙動を採用：スクロールを有効化するため overflow: hidden を削除 */
+  /* overflow: hidden; */ 
+  
+  /* デザインは common.css を継承 */
+  background: #020617;
+  color: #e2e8f0;
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+/* テキストカラー補助 */
+.text-default { color: #ffffff; }
+.text-error { color: #f87171; }
+.text-success { color: #10b981; }
+
+/* タイトル・区切り線 */
+h3 { color: #a5f3fc; }
+hr { border-color: rgba(148, 163, 184, 0.3); }
+
+/* 背景Canvas用（固定配置） */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* コンテンツの後ろに配置 */
+  pointer-events: none;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+/* =========================================
+   Components (from common.css)
+   ========================================= */
+
+/* 画像コントロール */
+.img-control {
+  max-width: 7.5%;
+  height: auto;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(100,116,139,0.3);
+  background-color: #0f172a;
+  padding: 0.25rem;
+  box-shadow: 0 0 10px rgba(16,185,129,0.2);
+  transition: all 0.3s ease;
+}
+
+.img-control:hover {
+  box-shadow: 0 0 14px rgba(16,185,129,0.4);
+  transform: scale(1.03);
+}
+
+/* ガラス風カードデザイン */
+.card-glass {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(100,116,139,0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 1rem;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.1);
+  max-width: 500px;
+  width: 90%;
+  margin: 2rem auto; /* 上下に余白を追加してスクロールしやすく */
+}
+
+/* ボタン */
+.btn-primary {
+  background-color: #10b981;
+  border: none;
+  color: #fff;
+}
+.btn-primary:hover {
+  background-color: #34d399;
+  color: #fff;
+}
+
+/* =========================================
+   Forms / Inputs (Consolidated)
+   デザインは common.css の「ダーク/ガラス」を採用
+   クラス名は Bootstrap (.form-control) と互換性を維持
+   ========================================= */
+
+/* ラベル */
+form label {
+  display: block; /* white -> block に修正(typo修正) */
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+  color: #a5f3fc;
+}
+
+/* 入力欄の共通スタイル（Bootstrapの上書き含む） */
+.form-control,
+.form-select,
+form input:not([type="submit"]):not([type="button"]),
+form textarea,
+form select {
+  /* common.css の .form-control (ダークガラス) のデザインを適用 */
+  background-color: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(100, 116, 139, 0.4);
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 0.6rem 1rem;
+  transition: all 0.2s ease-in-out;
+  width: 100%;
+  box-sizing: border-box; /* レイアウト崩れ防止 */
+}
+
+/* プレースホルダーの色 */
+.form-control::placeholder,
+form input::placeholder,
+form textarea::placeholder {
+  color: rgba(148, 163, 184, 0.6);
+}
+
+/* フォーカス時のスタイル */
+.form-control:focus,
+.form-select:focus,
+form input:not([type="submit"]):not([type="button"]):focus,
+form textarea:focus,
+form select:focus {
+  background-color: rgba(15, 23, 42, 0.8);
+  border-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+  color: #f1f5f9;
+  outline: none;
+}
+
+/* テキストエリアのサイズ調整 */
+textarea.form-control,
+form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* エラーリスト */
+.errorlist {
+  color: #f87171;
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+  list-style: none;
+  padding-left: 0;
+}

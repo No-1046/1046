@@ -1,0 +1,27 @@
+
+# --- ファイル ---
+.env
+db.sqlite3
+
+# --- ディレクトリ（フォルダ） ---
+
+# Pythonが自動で作るキャッシュフォルダ（必須）
+__pycache__/
+
+# 仮想環境のフォルダ（もしプロジェクト内に作っているなら必須）
+# ※人によって名前が違うので、自分の環境に合わせてください
+venv/
+env/
+.venv/
+
+# VSCodeの設定フォルダ（個人の設定なのでGitには上げないのが普通）
+.vscode/
+
+# PyCharmなどの設定フォルダ
+.idea/
+
+# Macが勝手に作るファイル（もしMacを使っているなら）
+.DS_Store
+
+# Google Cloud Key
+news_analyzer/gcs-key.json

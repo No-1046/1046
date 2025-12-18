@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-app_name = 'satock_analyzer'
+app_name = 'stock_analyzer'
 urlpatterns = [ 
     path('', views.index, name='index'),
     path('series', views.get_series, name='get_series'),  # 株価データ取得

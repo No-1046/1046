@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('stock_analyzer.urls')), # 株価分析機能は /analyzer/ 以下に
     path('accounts/', include('accounts.urls')), 
+    path('news/', include('news_analyzer.urls')), 
     #path('accounts/home', include('accounts.urls')),  
     #path('accounts/logout', include('accounts.urls')),       # 認証機能は /accounts/ 以下に
 

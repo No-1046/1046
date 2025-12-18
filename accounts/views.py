@@ -17,7 +17,7 @@ def signup(request):
             user = form.save()
             # サインアップ後、自動的にログインさせる
             auth_login(request, user)
-            return redirect('satock_analyzer:home')
+            return redirect('stock_analyzer:home')
     else:
         # GETリクエストでも UserCreationForm を使う
         form = UserCreationForm()
@@ -36,7 +36,7 @@ def login(request):
             if 'next' in request.POST:
                 return redirect(request.POST.get('next'))
             else:
-                return redirect('satock_analyzer:home')
+                return redirect('stock_analyzer:home')
     else:
         form = AuthenticationForm()
     return render(request, "accounts/login.html", {'form': form})
