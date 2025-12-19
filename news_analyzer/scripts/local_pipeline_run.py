@@ -110,12 +110,13 @@ def main():
             "reason": reason
         })
 
-    # 保存先修正: news_analyzer 階層ズレ対策
-    # args.base が "news_analyzer/companies/..." になっているのを補正
-    base_fixed = args.base.replace("news_analyzer\\", "").replace("news_analyzer/", "")
-    if "companies" not in base_fixed: # 万が一パスがおかしい場合の保険
-         base_fixed = os.path.join("companies", os.path.basename(args.base.rstrip("\\/")))
+    # 修正前（削除またはコメントアウト）:
+    # base_fixed = args.base.replace("news_analyzer\\", "").replace("news_analyzer/", "")
+    # if "companies" not in base_fixed: 
+    #      base_fixed = os.path.join("companies", os.path.basename(args.base.rstrip("\\/")))
 
+    # 修正後（シンプルにする）=正しいディレクトリに保存されなかったため:
+    base_fixed = args.base
     out_dir = os.path.join(base_fixed, "history_csv")
     os.makedirs(out_dir, exist_ok=True)
     
