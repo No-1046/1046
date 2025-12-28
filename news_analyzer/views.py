@@ -248,7 +248,7 @@ def api_daily(request):
     print(f"\n=== api_daily START: {raw_ticker} (Key: {search_key}) ===")
 
     # 1. フォルダ検索
-    base_dir = os.path.join(settings.BASE_DIR, 'companies')
+    base_dir = COMPANIES_DIR
     target_dir = None
     
     if os.path.exists(base_dir):
@@ -365,7 +365,7 @@ def api_headlines(request):
         return JsonResponse({"error": "日付指定が必要です"}, status=400)
 
     # 2. フォルダを探す
-    base_dir = os.path.join(settings.BASE_DIR, 'companies')
+    base_dir = COMPANIES_DIR
     target_dir = None
     
     if os.path.exists(base_dir):
