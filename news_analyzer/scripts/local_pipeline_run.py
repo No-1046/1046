@@ -18,10 +18,24 @@ API_KEY = os.environ.get("GEMINI_API_KEY")  # あなたのキーを維持して�
 def analyze_sentiment(text, model):
     # プロンプト（指示文）
     prompt = f"""
-    ニュースの感情分析を行い、-1.0(ネガティブ)〜1.0(ポジティブ)のスコアをつけてください。
-    ニュース: {text}
-    回答はJSONのみ: {{"score": 0.5, "reason": "..."}}
+    あなたは熟練したニュースアナリストです。
+    以下のニュース記事の内容が持つ「社会的・経済的な影響」に基づき、感情分析を行ってください。
+
+    # 評価基準
+    - スコア範囲: -1.0 (非常にネガティブ/損失/悲劇) 〜 1.0 (非常にポジティブ/利益/発展)
+    - 0.0は完全な中立、または事実の羅列のみの場合。
+
+    # 制約事項
+    - 出力は純粋なJSON形式のみとし、Markdown記法（```json等）や挨拶文は一切含めないでください。
+    - reasonは、なぜそのスコアになったのか、具体的な要因（例：業績悪化、新技術の発見など）を含めて簡潔に記述してください。
+
+    # ニュース
+    {text}
+
+    # 出力形式
+    {{"score": float, "reason": "string"}}
     """
+    
     try:
         response = model.generate_content(prompt)
         txt = response.text
@@ -110,21 +124,15 @@ def main():
             "reason": reason
         })
 
-    # 修正前（削除またはコメントアウト）:
-    # base_fixed = args.base.replace("news_analyzer\\", "").replace("news_analyzer/", "")
-    # if "companies" not in base_fixed: 
-    #      base_fixed = os.path.join("companies", os.path.basename(args.base.rstrip("\\/")))
-
-    # 修正後（シンプルにする）=正しいディレクトリに保存されなかったため:
-    base_fixed = args.base
-    out_dir = os.path.join(base_fixed, "history_csv")
+    out_dir = os.path.join(args.base, "history_csv")
     os.makedirs(out_dir, exist_ok=True)
-    
+
     today = datetime.now().strftime("%Y%m%d")
     out_path = os.path.join(out_dir, f"history_append_{today}.csv")
-    
-    pd.DataFrame(results).to_csv(out_path, index=False, encoding='utf-8-sig')
-    print(f"保存完了: {out_path}")
 
+    print(f"保存先: {out_path}")
+    pd.DataFrame(results).to_csv(out_path, index=False, encoding='utf-8-sig')
+    print(f"✓ 保存完了: {out_path}")
+    
 if __name__ == "__main__":
     main()

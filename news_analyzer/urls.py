@@ -26,4 +26,7 @@ urlpatterns = [
 
     # ダッシュボード用：指定日のニュース詳細（ここが足りていませんでした！）
     path('headlines', views.api_headlines, name='headlines'),
+    
+    
+    path('series', views.news_series, name='news_series'),  # 株価データ取得
 ]

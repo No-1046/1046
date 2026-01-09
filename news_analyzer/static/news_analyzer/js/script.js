@@ -201,130 +201,179 @@ async function loadSelectedCompany(){
     // "Name-Ticker" を分解
     const parts = val.split("-");
     const tickerRaw = parts.pop(); 
-    let company = parts.join("-");
-    if (company) {
-        // nintendo → Nintendo に変換
-        company = company.charAt(0).toUpperCase() + company.slice(1);
-    }
+    const company = parts.join("-"); 
     
     await updateChart(company, tickerRaw);
 }
 
 // チャート更新
+// script.js の updateChart 関数内
 async function updateChart(company, ticker){
     if(!$("chart")) return;
 
-    // 1. データを取得
     console.log(`[Fetch] /daily 取得開始: ${company}-${ticker}`);
-    const res = await fetchJSONEx("/daily", { company, ticker, days: 60 });
+    const res = await fetchJSONEx("/daily", { ticker: ticker });
 
-    // ★可視化ポイント1: 届いた生データをコンソールに全表示
     console.log("[Fetch] サーバーからの応答データ:", res);
 
-    // 2. エラーハンドリングの細分化
     if (res.error) {
        console.error("サーバーエラー:", res.error);
        alert(`サーバーエラーが発生しました:\n${res.error}`);
        return;
     }
 
-    // 3. データ構造のチェックと変換
     let data = [];
-
-    if (res.daily) {
-        // パターンA: 期待通りの形式 (res.dailyがある)
-        console.log("データ形式: 標準 (res.daily)");
+    
+    if (res.daily && Array.isArray(res.daily)) {
         data = res.daily;
-    } 
-    else if (res.dates && res.scores) {
-        // パターンB: 今回のケース (res.dates, res.scores がある)
-        console.warn("データ形式: 別形式 (dates/scores) を検出しました。変換します。");
-        
-        // バラバの配列を、JSが使いやすい「行ごとのオブジェクト」に変換
-        for(let i = 0; i < res.dates.length; i++) {
-            data.push({
-                tradedate: res.dates[i],
-                avg_sent: res.scores[i],
-                closeprice: 0 // ※注意: この形式だと株価が含まれていない可能性があります
-            });
-        }
-    } 
-    else {
-        // パターンC: 本当にデータがない、または全く違う形式
+        console.log(`データ形式: 標準 (res.daily) - ${data.length}件`);
+    } else {
         console.error("データ形式不明。含まれているキー:", Object.keys(res));
-        alert("データの取得に成功しましたが、形式が不明です。\nF12キーでConsoleを確認してください。");
+        alert("データの取得に成功しましたが、形式が不明です。");
         return;
     }
 
-    // データが0件の場合
     if (data.length === 0) {
         alert("データが見つかりませんでした (0件)");
         return;
     }
 
-    // ここから先は data 変数を使うので共通処理になります
     console.log(`描画対象データ: ${data.length}件`);
 
-    // 日付セレクトボックスの更新
+    // ★★★ ここを修正: 感情データがある日付のみをセレクトボックスに追加 ★★★
     const dateSel = $("dateSelect");
     const currentPick = dateSel.value;
     dateSel.innerHTML = "";
     lastDailyDates = [];
     
     data.forEach(r => {
-      lastDailyDates.push(r.tradedate);
-      const opt = document.createElement("option");
-      opt.value = r.tradedate;
-      opt.textContent = r.tradedate;
-      dateSel.appendChild(opt);
+      // has_sentiment が true の日付のみ追加
+      if (r.has_sentiment) {
+        const dateVal = r.date || r.tradedate;
+        lastDailyDates.push(dateVal);
+        const opt = document.createElement("option");
+        opt.value = dateVal;
+        opt.textContent = dateVal;
+        dateSel.appendChild(opt);
+      }
     });
 
-    if(currentPick && lastDailyDates.includes(currentPick)){
-       dateSel.value = currentPick;
-    } else if (lastDailyDates.length > 0) {
-       dateSel.value = lastDailyDates[lastDailyDates.length - 1];
+    // セレクトボックスが空の場合の処理
+    if (lastDailyDates.length === 0) {
+        dateSel.innerHTML = '<option value="">(ニュース分析データなし)</option>';
+        console.warn("ニュース分析済みの日付が見つかりませんでした");
+    } else {
+        // 以前選択していた日付を維持、なければ最新日を選択
+        if(currentPick && lastDailyDates.includes(currentPick)){
+           dateSel.value = currentPick;
+        } else {
+           dateSel.value = lastDailyDates[lastDailyDates.length - 1];
+        }
     }
     
     dateSel.onchange = () => updateHeadlines(company, ticker);
 
-    // Plotly描画
-    const dates = data.map(d => d.tradedate);
-    // 株価がない場合(0)は表示がおかしくなるので注意
-    const prices = data.map(d => d.closeprice || 0); 
-    const sents = data.map(d => d.avg_sent);
+    // グラフ用配列作成
+    const dates  = data.map(d => d.date || d.tradedate);
+    const prices = data.map(d => d.price || d.closeprice || 0);
+    const sents  = data.map(d => d.sentiment || d.avg_sent || 0);
+    
+    // 感情データがある日のみの情報を抽出（マーカー表示用）
+    const sentimentDates = data.filter(d => d.has_sentiment).map(d => d.date);
+    const sentimentPrices = data.filter(d => d.has_sentiment).map(d => d.price);
 
+    // Trace1: 株価ライン（全期間）
     const trace1 = {
-      x: dates, y: prices,
-      name: '株価', type: 'scatter', mode: 'lines', line: {color: '#0e68ff'},
+      x: dates, 
+      y: prices,
+      name: '株価',
+      type: 'scatter',
+      mode: 'lines',
+      line: { color: '#0e68ff', width: 2 },
       yaxis: 'y1'
     };
+    
+    // Trace2: 感情データがある日のマーカー
     const trace2 = {
-      x: dates, y: sents,
-      name: '感情スコア(avg)', type: 'bar', marker: {color: '#10b981', opacity:0.6},
-      yaxis: 'y2'
+      x: sentimentDates,
+      y: sentimentPrices,
+      name: 'ニュース分析済み',
+      type: 'scatter',
+      mode: 'markers',
+      marker: { 
+        color: '#10b981', 
+        size: 8,
+        symbol: 'circle'
+      },
+      yaxis: 'y1',
+      hovertemplate: '%{x}<br>株価: %{y:.2f}円<extra></extra>'
     };
 
+    // Trace3: 感情スコア（バー）- 分析済みの日のみ表示
+    const trace3 = {
+      x: sentimentDates, 
+      y: data.filter(d => d.has_sentiment).map(d => d.sentiment),
+      name: '感情スコア',
+      type: 'bar',
+      marker: { 
+        color: data.filter(d => d.has_sentiment).map(d => {
+          const s = d.sentiment;
+          return s > 0 ? '#10b981' : s < 0 ? '#ef4444' : '#6b7280';
+        }),
+        opacity: 0.6 
+      },
+      yaxis: 'y2',
+      hovertemplate: '%{x}<br>スコア: %{y:.3f}<extra></extra>'
+    };
+
+    // Layout
     const layout = {
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: { color: '#e2e8f0' },
-      margin: { l: 50, r: 50, t: 30, b: 50 },
+      margin: { l: 60, r: 60, t: 30, b: 50 },
       showlegend: true,
-      legend: { orientation: 'h', y: 1.1 },
-      xaxis: { gridcolor: '#334155' },
-      yaxis: { title: '株価', side: 'left', gridcolor: '#334155' },
+      legend: { 
+        orientation: 'h', 
+        y: 1.15,
+        x: 0.5,
+        xanchor: 'center'
+      },
+      xaxis: { 
+        gridcolor: '#334155',
+        title: '日付'
+      },
+      yaxis: { 
+        title: '株価 (円)', 
+        side: 'left', 
+        gridcolor: '#334155',
+        titlefont: { color: '#0e68ff' },
+        tickfont: { color: '#0e68ff' }
+      },
       yaxis2: {
-        title: '感情スコア', side: 'right', overlaying: 'y',
-        range: [-1, 1], showgrid: false
-      }
+        title: '感情スコア',
+        side: 'right',
+        overlaying: 'y',
+        range: [-1, 1],
+        showgrid: false,
+        titlefont: { color: '#10b981' },
+        tickfont: { color: '#10b981' },
+        zeroline: true,
+        zerolinecolor: '#6b7280',
+        zerolinewidth: 1
+      },
+      hovermode: 'x unified'
     };
 
-    Plotly.newPlot('chart', [trace2, trace1], layout, {responsive: true});
+    // 描画（順序: バー→ライン→マーカー）
+    Plotly.newPlot('chart', [trace3, trace1, trace2], layout, { responsive: true });
     
-    updateHeadlines(company, ticker);
+    // 初回表示時に自動的にニュースを読み込む
+    if (lastDailyDates.length > 0) {
+        updateHeadlines(company, ticker);
+    }
 }
 
-// ニュース（ヘッドライン）更新 ★ここを最新版にしました
 async function updateHeadlines(company, ticker){
     const headlinesDiv = $("headlines");
     const dateSel = $("dateSelect");
