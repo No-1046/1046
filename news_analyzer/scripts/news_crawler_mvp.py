@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Google News RSS クローラー — 任意企業対応版
-- company + ticker を受け取り、その会社向けのニュースのみ抽出
+Google News RSS クローラー — 銘柄コードのみ対応版
+- ticker のみを受け取り、yfinance から会社名を自動取得
 - 直近 N 日を today_YYYYMMDD.csv に日次分割出力
 - BASE は NIN_PROJECT_BASE（app.py が会社別フォルダを設定）
 """
@@ -31,6 +31,7 @@ os.makedirs(HIST_DIR,  exist_ok=True)
 COL_DATE   = "tradedate"
 COL_TITLE  = "newstitle"
 COL_CLOSE  = "closeprice"
+COL_COMPANY = "company"  # 新規追加：会社名を保存
 
 SEEN_PATH  = os.path.join(HIST_DIR, "seen_news_ids.json")
 STATE_PATH = os.path.join(HIST_DIR, "last_crawled.txt")
@@ -39,7 +40,7 @@ STATE_PATH = os.path.join(HIST_DIR, "last_crawled.txt")
 UA  = {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/2.1)"}
 JST = timezone(timedelta(hours=9))
 
-# 一些常見公司的日/英別名（可自行擴充）
+# 一些常見公司の日/英別名（自動取得した会社名の補完用）
 COMPANY_SYNONYMS = {
     "任天堂": ["任天堂", "Nintendo", "Nintendo Co., Ltd."],
     "ソニー": ["ソニー", "Sony", "Sony Group", "ソニーグループ"],
@@ -132,6 +133,44 @@ def host_in_whitelist(url: str) -> bool:
     except Exception:
         return False
 
+
+# ---- 新機能：銘柄コードから会社名を取得 ----
+def get_company_name_from_ticker(ticker: str) -> str:
+    """
+    yfinance を使って ticker から会社名を取得する。
+    取得できない場合は ticker をそのまま返す。
+    """
+    candidates = _ticker_candidates_for_yf(ticker)
+    
+    for tk in candidates:
+        try:
+            t = yf.Ticker(tk)
+            info = t.info
+            
+            # 会社名の取得（複数のキーを試す）
+            company_name = (
+                info.get("longName") or 
+                info.get("shortName") or 
+                info.get("name")
+            )
+            
+            if company_name:
+                # 余計な文字列を削除（例："Sony Group Corporation" → "Sony"）
+                company_name = company_name.strip()
+                # 成功したらログ出力
+                if tk != ticker:
+                    print(f"[INFO] 銘柄コード '{ticker}' では取得できなかったため、'{tk}' から会社名を取得しました: {company_name}")
+                else:
+                    print(f"[INFO] 銘柄コード '{ticker}' から会社名を取得しました: {company_name}")
+                return company_name
+        except Exception as e:
+            continue
+    
+    # 取得できなかった場合
+    print(f"[WARN] 銘柄コード '{ticker}' から会社名を取得できませんでした。コードをそのまま使用します。")
+    return ticker
+
+
 def build_company_keywords(company: str, ticker: str):
     # 取數字代碼（例：6758.T → 6758）
     code = re.sub(r"\D","", ticker or "")
@@ -159,28 +198,33 @@ def build_company_keywords(company: str, ticker: str):
     return queries, must_include
 
 
-# ---- yfinance 用 ticker 候補生成（防止沒抓到股價） ----
+# ---- yfinance 用 ticker 候補生成 ----
 def _ticker_candidates_for_yf(ticker: str):
     """
     yfinance 用の ticker 候補をいくつか生成する。
     例:
-      "6758"      -> ["6758", "6758.T"]
+      "6758"      -> ["6758.T", "6758"]
       "6758.T"    -> ["6758.T", "6758"]
       "SONY"      -> ["SONY"]
     """
     ticker = (ticker or "").strip()
     cands = []
-    if ticker:
-        cands.append(ticker)
-
+    
     code = re.sub(r"\D", "", ticker)  # 數字部分だけ
-    if code and code not in cands:
-        cands.append(code)
-    # 日本株っぽい 4 ケタコードなら ".T" を付けた候補も追加
+    
+    # 日本株っぽい 4 ケタコードなら ".T" 付きを優先
     if code and len(code) == 4:
-        alt = f"{code}.T"
-        if alt not in cands:
-            cands.append(alt)
+        t_with_suffix = f"{code}.T"
+        if t_with_suffix not in cands:
+            cands.append(t_with_suffix)
+        if code not in cands:
+            cands.append(code)
+    else:
+        # 元の ticker を追加
+        if ticker:
+            cands.append(ticker)
+        if code and code not in cands:
+            cands.append(code)
 
     # 去重保持順序
     return list(dict.fromkeys(cands))
@@ -189,8 +233,6 @@ def _ticker_candidates_for_yf(ticker: str):
 def build_close_map(ticker: str, start_d: date, end_d: date) -> dict:
     """
     指定期間の終値を yfinance から取得して {date: Close} の dict にする。
-    - ticker がちょっと違っても良いように、候補をいくつか試す
-    - 全部ダメだった場合は空 dict を返し、あとで daily 集計側で前日終値を補間する
     """
     start_pad = (start_d - timedelta(days=10)).isoformat()
     end_pad   = (end_d + timedelta(days=3)).isoformat()
@@ -322,6 +364,7 @@ def run_for_period(since_d: date, until_d: date, ignore_seen_global: bool, overw
         if rows:
             df = pd.DataFrame({
                 COL_DATE:   [tradedate or cur.isoformat()] * len(rows),
+                COL_COMPANY: [company] * len(rows),  # 会社名を追加
                 COL_TITLE:  [r['title'] for r in rows],
                 COL_CLOSE:  [close if close is not None else ""] * len(rows),
                 "newslink":      [r['link'] for r in rows],
@@ -344,8 +387,7 @@ def run_for_period(since_d: date, until_d: date, ignore_seen_global: bool, overw
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--company", required=True, type=str, help="公司名稱（例：ソニー、任天堂…）")
-    p.add_argument("--ticker",  required=True, type=str, help="股票代碼（例：6758.T、7974.T）")
+    p.add_argument("--ticker",  required=True, type=str, help="株式コード（例：6758.T、7974.T、AAPL）")
     p.add_argument("--overwrite", action="store_true")
     p.add_argument("--use-source-whitelist", action="store_true")
     p.add_argument("--date", type=str)
@@ -359,10 +401,14 @@ def main():
         USE_SOURCE_WHITELIST = True
         print("[OK] 已啟用來源網域白名單模式。")
 
+    # 銘柄コードから会社名を自動取得
+    company = get_company_name_from_ticker(args.ticker)
+    print(f"[INFO] 使用する会社名: {company}")
+
     if args.date:
         d = datetime.strptime(args.date, "%Y-%m-%d").date()
         run_for_period(d, d, ignore_seen_global=False, overwrite=args.overwrite,
-                       company=args.company, ticker=args.ticker); return
+                       company=company, ticker=args.ticker); return
     if args.since or args.until:
         if not (args.since and args.until):
             raise SystemExit("錯誤：--since 與 --until 需成對使用。")
@@ -370,18 +416,18 @@ def main():
         u = datetime.strptime(args.until, "%Y-%m-%d").date()
         if s > u: s, u = u, s
         run_for_period(s, u, ignore_seen_global=False, overwrite=args.overwrite,
-                       company=args.company, ticker=args.ticker); return
+                       company=company, ticker=args.ticker); return
     if args.last_ndays:
         today = jst_now().date()
         since = today - timedelta(days=int(args.last_ndays))
         run_for_period(since, today, ignore_seen_global=False, overwrite=args.overwrite,
-                       company=args.company, ticker=args.ticker); return
+                       company=company, ticker=args.ticker); return
 
     # 預設抓「近一個月」
     today = jst_now().date()
     since = today - relativedelta.relativedelta(months=1)
     run_for_period(since, today, ignore_seen_global=False, overwrite=args.overwrite,
-                   company=args.company, ticker=args.ticker)
+                   company=company, ticker=args.ticker)
 
 if __name__ == "__main__":
     main()

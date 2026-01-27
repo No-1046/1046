@@ -5,6 +5,7 @@
 // ==========================================
 const API_BASE = "/news";
 let lastDailyDates = []; // チャートの日付保持用
+let currentCompanyName = ""; // 取得した会社名を保持
 
 // ==========================================
 // 1. 基本ヘルパー関数
@@ -54,6 +55,17 @@ function clearLog() {
   if($("result")) $("result").textContent = "--- 開始 ---";
 }
 
+// 会社名表示
+function showCompanyName(companyName) {
+  currentCompanyName = companyName;
+  const displayDiv = $("companyNameDisplay");
+  const nameSpan = $("detectedCompanyName");
+  if (displayDiv && nameSpan) {
+    nameSpan.textContent = companyName;
+    displayDiv.style.display = 'block';
+  }
+}
+
 // ==========================================
 // 2. API通信関数 (GET / POST)
 // ==========================================
@@ -95,17 +107,28 @@ async function fetchJSONEx(endpoint, params={}){
 // 3. 管理画面用機能 (Crawl / Analyze)
 // ==========================================
 async function runCrawl() {
-  const company = $("paramCompany").value;
-  const ticker  = $("paramTicker").value;
-  const days    = parseInt($("paramDays").value);
-  if(!company || !ticker) { alert("会社名とTickerは必須です"); return; }
+  const ticker = $("paramTicker").value.trim();
+  const days = parseInt($("paramDays").value);
+  
+  if(!ticker) { 
+    alert("銘柄コードを入力してください"); 
+    return; 
+  }
   
   clearLog();
   setLoading(true, "収集中...");
-  log(`[Crawl] 開始: ${company} (${ticker}), 過去${days}日分`);
+  log(`[Crawl] 開始: ${ticker}, 過去${days}日分`);
 
   try {
-    const res = await postAPI("/news/crawl", { company, ticker, days });
+    // company パラメータを削除、ticker のみ送信
+    const res = await postAPI("/news/crawl", { ticker, days });
+    
+    // 会社名が返ってきたら表示
+    if (res.company_name) {
+      showCompanyName(res.company_name);
+      log(`[会社名] ${res.company_name}`);
+    }
+    
     log(`[Done] ${res.message}`);
     log(j(res));
   } catch(e) {
@@ -116,16 +139,27 @@ async function runCrawl() {
 }
 
 async function runAnalyze() {
-  const company = $("paramCompany").value;
-  const ticker  = $("paramTicker").value;
-  if(!company || !ticker) { alert("会社名とTickerは必須です"); return; }
+  const ticker = $("paramTicker").value.trim();
+  
+  if(!ticker) { 
+    alert("銘柄コードを入力してください"); 
+    return; 
+  }
   
   clearLog();
-  setLoading(true, "分析中(数分かかります)...");
-  log(`[Analyze] 開始: ${company} (${ticker}) \n※Gemini APIを使用するため時間がかかります。`);
+  setLoading(true, "分析中...");
+  log(`[Analyze] 開始: ${ticker} \n※Gemini APIを使用するため時間がかかります。`);
 
   try {
-    const res = await postAPI("/news/analyze", { company, ticker });
+    // company パラメータを削除、ticker のみ送信
+    const res = await postAPI("/news/analyze", { ticker });
+    
+    // 会社名が返ってきたら表示
+    if (res.company_name) {
+      showCompanyName(res.company_name);
+      log(`[会社名] ${res.company_name}`);
+    }
+    
     log(`[Done] ${res.message}`);
     log(j(res));
   } catch(e) {
@@ -195,25 +229,18 @@ async function initCompanyList(){
 
 // 会社選択時の処理
 async function loadSelectedCompany(){
-    const val = $("companySelect").value;
-    if(!val) return;
+    const ticker = $("companySelect").value;
+    if(!ticker) return;
     
-    // "Name-Ticker" を分解
-    const parts = val.split("-");
-    const tickerRaw = parts.pop(); 
-    const company = parts.join("-"); 
-    
-    await updateChart(company, tickerRaw);
+    await updateChart(ticker);  // company パラメータを削除
 }
 
-// チャート更新
-// script.js の updateChart 関数内
-async function updateChart(company, ticker){
+// チャート更新    
+async function updateChart(ticker){
     if(!$("chart")) return;
 
-    console.log(`[Fetch] /daily 取得開始: ${company}-${ticker}`);
+    console.log(`[Fetch] /daily 取得開始: ticker=${ticker}`);
     const res = await fetchJSONEx("/daily", { ticker: ticker });
-
     console.log("[Fetch] サーバーからの応答データ:", res);
 
     if (res.error) {
@@ -240,7 +267,7 @@ async function updateChart(company, ticker){
 
     console.log(`描画対象データ: ${data.length}件`);
 
-    // ★★★ ここを修正: 感情データがある日付のみをセレクトボックスに追加 ★★★
+    // 感情データがある日付のみをセレクトボックスに追加
     const dateSel = $("dateSelect");
     const currentPick = dateSel.value;
     dateSel.innerHTML = "";
@@ -271,7 +298,7 @@ async function updateChart(company, ticker){
         }
     }
     
-    dateSel.onchange = () => updateHeadlines(company, ticker);
+    dateSel.onchange = () => updateHeadlines(ticker);
 
     // グラフ用配列作成
     const dates  = data.map(d => d.date || d.tradedate);
@@ -370,21 +397,20 @@ async function updateChart(company, ticker){
     
     // 初回表示時に自動的にニュースを読み込む
     if (lastDailyDates.length > 0) {
-        updateHeadlines(company, ticker);
+        updateHeadlines(ticker);
     }
 }
 
-async function updateHeadlines(company, ticker){
+async function updateHeadlines(ticker){
     const headlinesDiv = $("headlines");
     const dateSel = $("dateSelect");
     let date = dateSel.value;
     
     if(!date) return;
 
-    // ローディング表示
     headlinesDiv.innerHTML = '<div class="text-center text-muted mt-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> AI分析結果を読み込み中...</div>';
 
-    const hdRes = await fetchJSONEx("/headlines", { company, ticker, date });
+    const hdRes = await fetchJSONEx("/headlines", { ticker, date });  
     if (!hdRes.data) {
       headlinesDiv.innerHTML = `<div class="alert alert-secondary small">この日のニュースデータはありません</div>`;
       return;

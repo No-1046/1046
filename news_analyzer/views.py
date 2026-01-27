@@ -38,11 +38,86 @@ def _normalize_ticker(raw: str) -> str:
     if not raw:
         return ""
     raw = str(raw).strip().upper()
+    
+    # 既に .T がついている場合はそのまま返す
+    if raw.endswith(".T"):
+        return raw
+    
+    # "T" だけがついている場合は ".T" に置き換え
+    if raw.endswith("T") and len(raw) > 1:
+        raw = raw[:-1] + ".T"
+        return raw
+    
     # 日本株（数字4桁）の場合、末尾に .T を付与
     import re
     if re.match(r"^\d{4}$", raw):
         return f"{raw}.T"
+    
     return raw
+
+def _get_company_name_from_ticker(ticker: str) -> str:
+    """
+    yfinanceを使って銘柄コードから会社名を取得する
+    """
+    if not ticker:
+        return ""
+    
+    try:
+        # 複数の候補を試す
+        candidates = _ticker_candidates_for_yf(ticker)
+        
+        for tk in candidates:
+            try:
+                t = yf.Ticker(tk)
+                info = t.info
+                
+                # 会社名の取得（複数のキーを試す）
+                company_name = (
+                    info.get("longName") or 
+                    info.get("shortName") or 
+                    info.get("name")
+                )
+                
+                if company_name:
+                    company_name = company_name.strip()
+                    print(f"[INFO] 銘柄コード '{ticker}' から会社名を取得: {company_name}")
+                    return company_name
+            except Exception:
+                continue
+        
+        # 取得できなかった場合は ticker をそのまま返す
+        print(f"[WARN] 銘柄コード '{ticker}' から会社名を取得できませんでした")
+        return ticker
+        
+    except Exception as e:
+        print(f"[ERROR] 会社名取得エラー: {e}")
+        return ticker
+
+def _ticker_candidates_for_yf(ticker: str):
+    """
+    yfinance用のticker候補をいくつか生成する
+    """
+    ticker = (ticker or "").strip()
+    cands = []
+    
+    code = re.sub(r"\D", "", ticker)  # 数字部分だけ
+    
+    # 日本株っぽい4ケタコードなら .T 付きを優先
+    if code and len(code) == 4:
+        t_with_suffix = f"{code}.T"
+        if t_with_suffix not in cands:
+            cands.append(t_with_suffix)
+        if code not in cands:
+            cands.append(code)
+    else:
+        # 元のtickerを追加
+        if ticker:
+            cands.append(ticker)
+        if code and code not in cands:
+            cands.append(code)
+
+    # 去重保持順序
+    return list(dict.fromkeys(cands))
 
 def _get_company_dir(company: str, ticker: str) -> str:
     """
@@ -127,7 +202,7 @@ def api_diag(request):
 def api_crawl(request):
     """
     [POST] ニュースクローラーを実行する
-    JSON body: { "company":Str, "ticker":Str, "days":Int }
+    JSON body: { "ticker":Str, "days":Int }
     """
     if request.method != "POST":
         return HttpResponseBadRequest("POST method required")
@@ -135,14 +210,17 @@ def api_crawl(request):
     try:
         # JSONデータの取得
         data = json.loads(request.body)
-        company = data.get("company")
         ticker = data.get("ticker")
         days = data.get("days", 3)
         
-        if not company or not ticker:
-            return JsonResponse({"error": "会社名と銘柄コードは必須です"}, status=400)
-            
+        # ★ バリデーション: ticker のみ必須
+        if not ticker:
+            return JsonResponse({"error": "銘柄コードは必須です"}, status=400)
+        
         ticker_norm = _normalize_ticker(ticker)
+        
+        # ★ 銘柄コードから会社名を自動取得
+        company = _get_company_name_from_ticker(ticker_norm)
         
         # 保存先ディレクトリの準備
         target_dir = _get_company_dir(company, ticker)
@@ -153,13 +231,11 @@ def api_crawl(request):
         if not os.path.exists(script_path):
             return JsonResponse({"error": f"Script not found: {script_path}"}, status=500)
 
-        # コマンド作成
+        # ★ コマンド作成 (--company は不要、--ticker のみ)
         cmd = [
             PYTHON_EXE, script_path,
-            "--company", company,
             "--ticker", ticker_norm,
             "--last-ndays", str(days),
-            # 必要に応じて他の引数も追加
         ]
         
         # 環境変数の設定 (クローラーは環境変数 NIN_PROJECT_BASE を見て保存先を決める仕様と仮定)
@@ -167,32 +243,60 @@ def api_crawl(request):
         env["NIN_PROJECT_BASE"] = target_dir
         
         # 実行 (cwdはBASE_DIRにしておく)
-        subprocess.run(cmd, env=env, check=True, cwd=settings.BASE_DIR)
+        # Windows文字コードエラー回避のため、encoding指定
+        result = subprocess.run(
+            cmd, 
+            env=env, 
+            check=True, 
+            cwd=settings.BASE_DIR,
+            capture_output=True, 
+            text=True,
+            encoding='utf-8',  # UTF-8を明示的に指定
+            errors='replace'   # デコードエラーを?に置換
+        )
         
-        return JsonResponse({"status": "ok", "message": "クローリングが完了しました"})
+        # ★ レスポンスに会社名を含める
+        return JsonResponse({
+            "status": "success",
+            "message": "クローリングが完了しました",
+            "company_name": company,  # 追加
+            "output": result.stdout
+        })
 
     except subprocess.CalledProcessError as e:
-        return JsonResponse({"error": f"実行エラー: {str(e)}"}, status=500)
+        return JsonResponse({
+            "status": "error",
+            "error": f"実行エラー: {str(e)}",
+            "output": e.stderr
+        }, status=500)
     except Exception as e:
-        return JsonResponse({"error": f"システムエラー: {str(e)}"}, status=500)
+        return JsonResponse({
+            "status": "error",
+            "error": f"システムエラー: {str(e)}"
+        }, status=500)
 
 @csrf_exempt
 def api_analyze(request):
     """
     [POST] 分析パイプラインを実行する
-    JSON body: { "company":Str, "ticker":Str }
+    JSON body: { "ticker":Str }
     """
     if request.method != "POST":
         return HttpResponseBadRequest("POST method required")
 
     try:
         data = json.loads(request.body)
-        company = data.get("company")
         ticker = data.get("ticker")
         
-        if not company or not ticker:
-            return JsonResponse({"error": "会社名と銘柄コードは必須です"}, status=400)
-            
+        # ★ バリデーション: ticker のみ必須
+        if not ticker:
+            return JsonResponse({"error": "銘柄コードは必須です"}, status=400)
+        
+        ticker_norm = _normalize_ticker(ticker)
+        
+        # ★ 銘柄コードから会社名を自動取得
+        company = _get_company_name_from_ticker(ticker_norm)
+        
         # ターゲットディレクトリ
         base_path = _get_company_dir(company, ticker)
         if not base_path or not os.path.exists(base_path):
@@ -217,56 +321,85 @@ def api_analyze(request):
         # 環境変数でターゲット情報を渡す
         env = os.environ.copy()
         env["TARGET_COMPANY"] = company
-        env["TARGET_TICKER"] = _normalize_ticker(ticker)
+        env["TARGET_TICKER"] = ticker_norm
+        env["PYTHONIOENCODING"] = "utf-8"  # Windows文字コードエラー回避
         # GEMINI_API_KEY が環境変数にあることが前提
         
-        subprocess.run(cmd, env=env, check=True, cwd=settings.BASE_DIR)
+        result = subprocess.run(cmd, env=env, check=True, cwd=settings.BASE_DIR,
+                               capture_output=True, text=True)
         
-        return JsonResponse({"status": "ok", "message": "分析が完了しました"})
+        # ★ レスポンスに会社名を含める
+        return JsonResponse({
+            "status": "success",
+            "message": "分析が完了しました",
+            "company_name": company,  # 追加
+            "output": result.stdout
+        })
 
     except subprocess.CalledProcessError as e:
-        return JsonResponse({"error": f"分析実行エラー: {str(e)}"}, status=500)
+        error_msg = f"分析実行エラー: {str(e)}"
+        stderr_output = e.stderr if hasattr(e, 'stderr') else ""
+        
+        # google.genai のエラーを検出
+        if "has no attribute 'configure'" in stderr_output:
+            error_msg = "Gemini APIパッケージのバージョン不一致です。以下を実行してください:\npip uninstall google-genai\npip install google-generativeai==0.7.2"
+        
+        return JsonResponse({
+            "status": "error",
+            "error": error_msg,
+            "output": stderr_output,
+            "hint": "詳細はサーバーログを確認してください"
+        }, status=500)
     except Exception as e:
-        return JsonResponse({"error": f"システムエラー: {str(e)}"}, status=500)
-
-# views.py に以下の import があるか確認してください（なければ上部に追加）
-import os
-import glob
-import pandas as pd
-from django.http import JsonResponse
-from django.conf import settings
-
-# ... 他の関数の下に追加 ...
+        return JsonResponse({
+            "status": "error",
+            "error": f"システムエラー: {str(e)}"
+        }, status=500)
 
 def api_daily(request):
-    """
-    ダッシュボード用: 株価データ(yfinance) + 感情スコア(CSV)
-    新旧両方のデータ形式に対応
-    """
-    import traceback
+    """ダッシュボード用: 日次データ + 感情スコア"""
+    raw_ticker = request.GET.get('ticker', '')
     
-    raw_ticker = request.GET.get('ticker', '7974')
-    search_key = raw_ticker.lower().replace('t', '').replace('.', '')
-    
-    print(f"\n=== api_daily START: {raw_ticker} (Key: {search_key}) ===")
-    
-    # 1. フォルダ検索（大文字小文字を区別しない）
-    if not os.path.exists(COMPANIES_DIR):
-        print(f"!!! Error: COMPANIES_DIR が見つかりません: {COMPANIES_DIR}")
-        return JsonResponse({"error": "データディレクトリが見つかりません"}, status=404)
-    
+    print(f"=== api_daily START: {raw_ticker} ===")
     print(f"Companies Dir: {COMPANIES_DIR}")
     
-    target_dir = None
-    for d in os.listdir(COMPANIES_DIR):
-        # 大文字小文字を区別せずに検索
-        if search_key in d.lower():
-            candidate = os.path.join(COMPANIES_DIR, d, 'history_csv')
-            print(f"  Checking: {d} -> {candidate}")
-            if os.path.exists(candidate):
-                target_dir = candidate
-                print(f"  ✓ Found: {target_dir}")
-                break
+    if not raw_ticker:
+        return JsonResponse({"error": "ティッカーが必要です"}, status=400)
+    
+    # "CompanyName-XXXX.T" 形式の場合はそのまま使用
+    folder_name = raw_ticker
+    
+    # ティッカー部分を抽出して正規化
+    if '-' in raw_ticker:
+        ticker_part = raw_ticker.split('-')[-1]  # "6758t" or "7974.T"
+        
+        # 正規化: "6758t" → "6758.T", "7974.T" → "7974.T"
+        ticker = ticker_part.upper().replace('T', '').replace('.', '')  # "6758"
+        ticker = f"{ticker}.T"  # "6758.T"
+    else:
+        ticker = raw_ticker
+        if not ticker.endswith('.T'):
+            ticker = ticker.upper().replace('T', '').replace('.', '') + '.T'
+    
+    print(f"  Normalized ticker: {ticker}")
+    
+    target_dir = os.path.join(COMPANIES_DIR, folder_name, 'history_csv')
+    
+    print(f"  Checking: {folder_name} -> {target_dir}")
+    
+    if not os.path.exists(target_dir):
+        print(f"!!! Error: history_csvフォルダが見つかりません: {target_dir}")
+        existing = [d for d in os.listdir(COMPANIES_DIR)] if os.path.exists(COMPANIES_DIR) else []
+        print(f"利用可能なフォルダ: {existing}")
+        return JsonResponse({"error": "データが見つかりません"}, status=404)
+    
+    print(f"  ✓ Found: {target_dir}")
+    
+    # 以降、既存のコード（CSVファイル読み込み、yfinance取得など）
+    
+    # 以降は既存のコードと同じ...
+    # CSVファイル読み込み部分
+                
     
     if not target_dir:
         print(f"!!! Error: フォルダが見つかりません (search_key: {search_key})")
@@ -333,18 +466,16 @@ def api_daily(request):
     print(f"Sentiment data collected: {len(sentiment_data)} dates")
     
     # 3. yfinanceで株価データを取得
-    ticker_clean = search_key
-    ticker_yf = f"{ticker_clean}.T"
-    
-    print(f"[yfinance] Fetching: {ticker_yf}")
-    
+    # ticker変数は既に上で定義されているはず（"7974.T" の形式）
+    print(f"[yfinance] Fetching: {ticker}")
+
     try:
-        stock_df = yf.download(ticker_yf, period="1y", interval="1d", 
-                              progress=False, auto_adjust=True)
+        stock_df = yf.download(ticker, period="1y", interval="1d", 
+                            progress=False, auto_adjust=True)
         
         if stock_df is None or stock_df.empty:
             print("!!! yfinance returned no data")
-            return JsonResponse({"error": f"株価データが取得できませんでした ({ticker_yf})"}, status=404)
+            return JsonResponse({"error": f"株価データが取得できませんでした ({ticker})"}, status=404)
         
         if stock_df.index.tz is not None:
             stock_df.index = stock_df.index.tz_localize(None)
@@ -355,62 +486,60 @@ def api_daily(request):
         print(f"!!! yfinance ERROR: {e}")
         traceback.print_exc()
         return JsonResponse({"error": f"株価取得エラー: {str(e)}"}, status=500)
-    
+
     # 4. データを統合（FutureWarning修正）
     result_data = []
-    
+
     for date_idx, row in stock_df.iterrows():
         date_str = date_idx.strftime("%Y-%m-%d")
         result_data.append({
             "date": date_str,
-            "price": float(row["Close"].iloc[0]) if isinstance(row["Close"], pd.Series) else float(row["Close"]),  # ★修正
+            "price": float(row["Close"].iloc[0]) if isinstance(row["Close"], pd.Series) else float(row["Close"]),
             "sentiment": sentiment_data.get(date_str, 0),
             "has_sentiment": date_str in sentiment_data
         })
-    
+
     result_data.sort(key=lambda x: x["date"])
-    
+
     print(f"=== api_daily END: Total {len(result_data)} items, {len(sentiment_data)} with sentiment ===\n")
-    
+
     return JsonResponse({"daily": result_data})
 
 
 def api_headlines(request):
-    """
-    ダッシュボード用: ニュース詳細取得（新旧データ形式対応）
-    """
-    raw_ticker = request.GET.get('ticker', '7974')
+    """ダッシュボード用: ニュース詳細取得"""
+    raw_ticker = request.GET.get('ticker', '')
     date_str = request.GET.get('date')
     
-    search_key = raw_ticker.lower().replace('t', '').replace('.', '')
-    
-    print(f"--- api_headlines: {raw_ticker} (Key: {search_key}, Date: {date_str}) ---")
+    print(f"--- api_headlines: {raw_ticker} (Date: {date_str}) ---")
 
     if not date_str:
         return JsonResponse({"error": "日付指定が必要です"}, status=400)
 
-    # フォルダを探す（大文字小文字を区別しない）
     if not os.path.exists(COMPANIES_DIR):
         print(f"Error: COMPANIES_DIR が見つかりません: {COMPANIES_DIR}")
         return JsonResponse({"data": {"pos": [], "neg": []}})
     
-    target_dir = None
-    for d in os.listdir(COMPANIES_DIR):
-        if search_key in d.lower():
-            path_candidate = os.path.join(COMPANIES_DIR, d, 'history_csv')
-            if os.path.exists(path_candidate):
-                target_dir = path_candidate
-                print(f"  ✓ Found folder: {d}")
-                break
+    # フォルダ名はそのまま使用（"ソニー-6758t" など）
+    folder_name = raw_ticker
+    target_dir = os.path.join(COMPANIES_DIR, folder_name, 'history_csv')
     
-    if not target_dir:
-        print("Error: フォルダが見つかりません")
+    print(f"  Looking for: {target_dir}")
+    
+    if not target_dir or not os.path.exists(target_dir):
+        print(f"Error: フォルダが見つかりません: {target_dir}")
+        existing_folders = [d for d in os.listdir(COMPANIES_DIR)] if os.path.exists(COMPANIES_DIR) else []
+        print(f"  利用可能なフォルダ: {existing_folders}")
         return JsonResponse({"data": {"pos": [], "neg": []}})
-
+    
+    print(f"  ✓ Found folder: {folder_name}")
+    
     # CSVファイルパスの特定
     date_clean = date_str.replace("-", "")
     csv_name = f"history_append_{date_clean}.csv"
     csv_path = os.path.join(target_dir, csv_name)
+    
+    # 以降は既存のコード...
     
     print(f"  Looking for: {csv_path}")
     
@@ -470,16 +599,14 @@ def api_headlines(request):
         df = df.fillna("")
 
         # 1. 明確にネガティブなものと、ポジティブなものに分ける (0は除外)
-        neg_candidates = df[df["sentimentscore"] < 0]
-        pos_candidates = df[df["sentimentscore"] > 0]
+        neg_candidates = df[df[score_col] < 0]
+        pos_candidates = df[df[score_col] > 0]
 
         # 2. ネガティブ候補から下位5件（スコアが低い順＝悪い順）
-        neg_df = neg_candidates.nsmallest(5, "sentimentscore")
-        # または neg_df = neg_candidates.head(5) # ソート済みならこれでもOK
+        neg_df = neg_candidates.nsmallest(5, score_col)
 
         # 3. ポジティブ候補から上位5件（スコアが高い順＝良い順）
-        pos_df = pos_candidates.nlargest(5, "sentimentscore")
-        # または pos_df = pos_candidates.tail(5).iloc[::-1] # ソート済みならこれでもOK
+        pos_df = pos_candidates.nlargest(5, score_col)
         
         # 列名を標準化してレスポンス
         def normalize_row(row):
@@ -508,8 +635,6 @@ def api_headlines(request):
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 
-
-
     
 #グラフ描画    
     
@@ -521,33 +646,6 @@ def some_feature_view(request):
     
 def tz_naive_index(df): 
     return df.tz_localize(None) if df.index.tz is not None else df
-    
-def _normalize_ticker(raw: str) -> str:
-    """
-    銘柄コードを正規化する
-    例: "7974" -> "7974.T"
-        "6501t" -> "6501.T"
-        "6501T" -> "6501.T"
-    """
-    if not raw:
-        return ""
-    raw = str(raw).strip().upper()
-    
-    # 既に .T がついている場合はそのまま返す
-    if raw.endswith(".T"):
-        return raw
-    
-    # "T" だけがついている場合は ".T" に置き換え
-    if raw.endswith("T") and len(raw) > 1:
-        raw = raw[:-1] + ".T"
-        return raw
-    
-    # 日本株（数字4桁）の場合、末尾に .T を付与
-    import re
-    if re.match(r"^\d{4}$", raw):
-        return f"{raw}.T"
-    
-    return raw
 
 def fetch_ohlc(ticker: str, interval: str = "1d", years: int = 1) -> pd.DataFrame:
     period = f"{years}y"
@@ -577,7 +675,7 @@ _models = {}
 def news_series(request):
     ticker = request.GET.get('ticker', '6501')
     frame = request.GET.get('frame', '1d')
-    tk = normalize_ticker(ticker)
+    tk = _normalize_ticker(ticker)
     df = fetch_ohlc(tk, interval=frame)
     
     if df is None:
@@ -598,8 +696,6 @@ def news_series(request):
     ]
 
     some_feature_view(request)
-
-    #return rows
     
     return JsonResponse({
         "ticker": tk,
